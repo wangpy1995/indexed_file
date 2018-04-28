@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
-project(indexed_file C)
+project(indexed_file)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 11)
 
 IF(DEBUGMODE)
     SET(CMAKE_BUILD_TYPE "Debug")
@@ -37,4 +37,14 @@ LINK_DIRECTORIES(
 #增加子项目路径
 #ADD_SUBDIRECTORY(${MIDDLEWARE_SRC_DIR}/FaceClassifySort)
 
-add_executable(indexed_file main.c)
+add_executable(indexed_file
+        src/api/io.h
+        src/api/reader.h
+        src/api/schema.h
+        src/api/writer.h
+        src/common/util/visibility.h
+        src/common/status.cc
+        src/common/status.h
+        src/exception.cc
+        src/exception.h
+        main.c)
