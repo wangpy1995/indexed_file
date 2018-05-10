@@ -6,9 +6,9 @@
 
 namespace idx {
 
-    std::string FormatStatValue(Type::type parquet_type, const char* val) {
+    std::string FormatStatValue(Type::type indexed_type, const char* val) {
         std::stringstream result;
-        switch (parquet_type) {
+        switch (indexed_type) {
             case Type::BOOLEAN:
                 result << reinterpret_cast<const bool*>(val)[0];
                 break;
@@ -161,8 +161,8 @@ namespace idx {
         }
     }
 
-    int GetTypeByteSize(Type::type parquet_type) {
-        switch (parquet_type) {
+    int GetTypeByteSize(Type::type indexed_type) {
+        switch (indexed_type) {
             case Type::BOOLEAN:
                 return type_traits<BooleanType::type_num>::value_byte_size;
             case Type::INT32:
@@ -185,7 +185,7 @@ namespace idx {
         return 0;
     }
 
-// Return the Sort Order of the Parquet Physical Types
+// Return the Sort Order of the Indexed File Physical Types
     SortOrder::type DefaultSortOrder(Type::type primitive) {
         switch (primitive) {
             case Type::BOOLEAN:
@@ -203,7 +203,7 @@ namespace idx {
         return SortOrder::UNKNOWN;
     }
 
-// Return the SortOrder of the Parquet Types using Logical or Physical Types
+// Return the SortOrder of the Indexed File Types using Logical or Physical Types
     SortOrder::type GetSortOrder(LogicalType::type converted, Type::type primitive) {
         if (converted == LogicalType::NONE) return DefaultSortOrder(primitive);
         switch (converted) {
