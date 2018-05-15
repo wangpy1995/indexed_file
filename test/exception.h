@@ -4,7 +4,7 @@
 
 #include <exception>
 #include <string>
-#include "common/status.h"
+#include "status.h"
 
 #ifndef INDEXED_FILE_EXCEPTION_H
 #define INDEXED_FILE_EXCEPTION_H

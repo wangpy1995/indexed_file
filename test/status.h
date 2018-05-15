@@ -10,7 +10,7 @@
 #include <string>
 
 #include <cwchar>
-#include "util/visibility.h"
+#include "visibility.h"
 
 #define INDEXED_PREDICT_FALSE(x) (__builtin_expect(x, 0))
 
