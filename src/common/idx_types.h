@@ -6,7 +6,8 @@
 #define INDEXED_FILE_IDX_TYPES_H
 
 #include <stdint.h>
-#include <mhash.h>
+#include <stdio.h>
+#include <stdbool.h>
 #include "idx_constants.h"
 
 struct Type {
@@ -177,7 +178,8 @@ struct Statistics {
 
     bool (*equals)(const Statistics *This, const Statistics *that);
 
-    const char* (*toString)(const Statistics *This);
+    //将字符串写入到s中
+    void (*toString)(const Statistics *This, char *str);
 
     Statistics *(*free)(Statistics *This);
 };

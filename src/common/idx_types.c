@@ -22,7 +22,7 @@ inline bool sse_eq(const char *this, const char *that);
 //32 byte
 inline bool avx_eq(const char *this, const char *that);
 
-const char *statistics_to_str(const Statistics *This);
+void statistics_to_str(const Statistics *This,char *str);
 
 Statistics *initStatistics() {
     return initStatistics_(empty, empty, 0, 0, empty, empty);
@@ -76,18 +76,14 @@ bool statistics_equals(const Statistics *This, const Statistics *that) {
     }
 }
 
-const char *statistics_to_str(const Statistics *This) {
+void statistics_to_str(const Statistics *This, char *str) {
     if (This) {
         size_t len = 6 + This->max.length + 6 + This->min.length + 7 + 20 + 11 + 20 + 12 + This->max_value.length + 12 +
                      This->min_value.length + 2;
-        char *result = malloc(len* sizeof(char));
 //        char result[len];
-        sprintf(result, "{max: %s, min: %s, null: %ld, distinct: %ld,max_value: %s,min_value:  %s}",
+        sprintf(str, "{max: %s, min: %s, null: %ld, distinct: %ld,max_value: %s,min_value:  %s}",
                 This->max.str, This->min.str, This->null_count,
                 This->distinct_count, This->max_value.str, This->min_value.str);
-        return result;
-    } else {
-        return "NULL";
     }
 }
 

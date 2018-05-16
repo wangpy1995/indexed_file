@@ -12,6 +12,7 @@ extern void initConstants(void);
 
 typedef struct immutable_string {
     size_t length;
+    //此处建议使用字符串常量  以免free
     const char *str;
 } immutable_string;
 //静态空string
