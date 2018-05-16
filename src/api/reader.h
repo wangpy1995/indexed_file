@@ -5,7 +5,6 @@
 #ifndef INDEXED_FILE_READER_H
 #define INDEXED_FILE_READER_H
 
-#include <cstdio>
 #include <mhash.h>
 
 

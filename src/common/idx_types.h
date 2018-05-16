@@ -95,7 +95,7 @@ struct BoundaryOrder {
 
 typedef struct Statistics Statistics;
 
-struct StringType;
+typedef struct StringType StringType;
 
 struct UUIDType;
 
@@ -165,6 +165,7 @@ struct ColumnIndex;
 
 struct FileMetaData;
 
+//Statistics
 struct Statistics {
     const Statistics *This;
     immutable_string max;
@@ -175,12 +176,24 @@ struct Statistics {
     immutable_string min_value;
 
     bool (*equals)(const Statistics *This, const Statistics *that);
-    Statistics* (*free)(Statistics *This);
+
+    const char* (*toString)(const Statistics *This);
+
+    Statistics *(*free)(Statistics *This);
 };
 
 Statistics *initStatistics();
 
 Statistics *initStatistics_(immutable_string max, immutable_string min, int64_t nullCount, int64_t distinctCount,
                             immutable_string maxValue, immutable_string minValue);
+
+//String
+struct StringType {
+    immutable_string str;
+
+    bool (*equals)(const StringType *This, const StringType *that);
+
+    bool (*toString)(const StringType *This);
+};
 
 #endif //INDEXED_FILE_IDX_TYPES_H
