@@ -56,6 +56,8 @@ ${MIDDLEWARE_SRC_DIR}/common
 #ADD_SUBDIRECTORY(${MIDDLEWARE_SRC_DIR}/FaceClassifySort)
 
 add_executable(indexed_file
+src/api/writer.c
+src/api/reader.c
 src/common/idx_constants.c
 src/common/idx_types.c
 main.c)
