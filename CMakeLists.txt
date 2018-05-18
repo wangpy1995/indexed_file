@@ -9,7 +9,7 @@ endif()
 
 project(indexed_file VERSION ${VERSION})
 
-set(CMAKE_CXX_STANDARD 11)
+#set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_C_STANDARD 11)
 
 #if(DEBUGMODE)
@@ -26,8 +26,8 @@ set(CMAKE_C_STANDARD 11)
 #set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
 #set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
 
-#set(CMAKE_C_FLAGS_DEBUG "$ENV{CFLAGS} -O0 -Wall -g -ggdb")
-#set(CMAKE_C_FLAGS_RELEASE "$ENV{CFLAGS} -O3 -Wall")
+set(CMAKE_C_FLAGS_DEBUG "$ENV{CFLAGS} -mavx2 -O0 -Wall -g -ggdb")
+set(CMAKE_C_FLAGS_RELEASE "$ENV{CFLAGS} -mavx2 -O3 -Wall")
 
 #设置目标库路径(输出路径和链接路径)
 set(MIDDLEWARE_DST_DIR ${PROJECT_SOURCE_DIR}/bin)
@@ -49,6 +49,7 @@ set(MIDDLEWARE_INC_DIR ${PROJECT_SOURCE_DIR}/include)
 include_directories(
 ${MIDDLEWARE_SRC_DIR}
 ${MIDDLEWARE_SRC_DIR}/api
+${MIDDLEWARE_SRC_DIR}/util
 ${MIDDLEWARE_SRC_DIR}/common
 )
 
@@ -58,6 +59,11 @@ ${MIDDLEWARE_SRC_DIR}/common
 add_executable(indexed_file
 src/api/writer.c
 src/api/reader.c
+
+src/common/util/str_utils.c
+
 src/common/idx_constants.c
 src/common/idx_types.c
+
+src/common/types/statistics.c
 main.c)

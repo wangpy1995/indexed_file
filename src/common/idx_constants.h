@@ -16,6 +16,6 @@ typedef struct immutable_string {
     const char *str;
 } immutable_string;
 //静态空string
-static const immutable_string empty = {0, ""};
+const immutable_string EMPTY_STRING = {0, ""};
 
 #endif //INDEXED_FILE_IDX_CONSTANTS_H
