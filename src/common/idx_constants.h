@@ -12,12 +12,12 @@ extern void initConstants(void);
 
 //长度短于65536
 typedef struct immutable_string {
+    unsigned short length;
     //此处建议使用字符串常量  以免free
     const char *str;
-    unsigned short length;
 } immutable_string;
 
 //静态空string
-const static immutable_string EMPTY_STRING = {"",0};
+const static immutable_string EMPTY_STRING = {.str="", .length=0};
 
 #endif //INDEXED_FILE_IDX_CONSTANTS_H

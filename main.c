@@ -45,14 +45,16 @@ void testIO() {
 void testIndexedFileWriter(void) {
     FILE *fp = fopen("../resources/test_idx_file", "rb+");
     IndexedFileWriter *idxWriter = createIndexedFileWriter(fp);
+    ColumnOrder order = {};
     FileMetaData meta = {
             .version=001,
-            .schema_length=sizeof(SchemaElement),
+            .num_schemas=1,
             .num_rows=0,
-            .group_length=0,
-            .kv_length=2 * sizeof(KeyValue),
+            .num_groups=0,
+            .num_kvs=2,
             .created_by={.str="wpy", .length=3},
-            .column_order_length=0
+            .num_column_orders=1,
+            .column_orders=&order
     };
 
     StringType strType = {};
@@ -61,7 +63,7 @@ void testIndexedFileWriter(void) {
     };
 
     //schema
-    meta.schema = malloc(meta.schema_length);
+    meta.schema = malloc(meta.num_schemas * sizeof(SchemaElement));
     meta.schema->type = BYTE_ARRAY;
     meta.schema->type_length = 4;
     meta.schema->repetition_type = REPEATED;
@@ -77,7 +79,7 @@ void testIndexedFileWriter(void) {
     meta.schema->logicalType = logic;
 
 
-    meta.key_value_metadata = malloc((size_t) meta.kv_length);
+    meta.key_value_metadata = malloc(meta.num_kvs * sizeof(KeyValue));
 
     meta.key_value_metadata[0].key.length = 2;
     meta.key_value_metadata[0].key.str = "k1";
@@ -100,21 +102,52 @@ void testIndexedFileWriter(void) {
 void testIndexedFileReader(void) {
     FILE *fp = fopen("../resources/test_idx_file", "rb+");
     IndexedFileReader *idxReader = createIndexedFileReader(fp);
-    const FileMetaData *meta = idxReader->readFileMeta(idxReader);
+
+    const FileMetaData *meta = malloc(sizeof(FileMetaData));
+    idxReader->readFileMeta(idxReader, meta);
     printf("meta: %p\n", meta);
-    if(meta->schema){
+    int i;
+    if (meta->schema) {
+        if (meta->schema->name.str) {
+            free(meta->schema->name.str);
+            meta->schema->name.str = NULL;
+        }
         free(meta->schema);
     }
-    if(meta->row_groups){
+    if (meta->row_groups) {
+        for (i = 0; i < meta->num_groups; ++i) {
+            if (meta->row_groups->columns) {
+                free(meta->row_groups->columns);
+                meta->row_groups->columns=NULL;
+            }
+            if (meta->row_groups->sorting_columns) {
+                free(meta->row_groups->sorting_columns);
+                meta->row_groups->sorting_columns=NULL;
+            }
+        }
         free(meta->row_groups);
     }
-    if(meta->column_orders){
+    if (meta->column_orders) {
         free(meta->column_orders);
     }
-    if(meta->key_value_metadata){
+    if (meta->key_value_metadata) {
+        for (i = 0; i < meta->num_kvs; ++i) {
+            if (meta->key_value_metadata->key.str) {
+                free(meta->key_value_metadata->key.str);
+                meta->key_value_metadata->key.str=NULL;
+            }
+            if (meta->key_value_metadata->value.str) {
+                free(meta->key_value_metadata->value.str);
+                meta->key_value_metadata->value.str=NULL;
+            }
+        }
         free(meta->key_value_metadata);
     }
-    meta=NULL;
+
+    if(meta->created_by.str){
+        free(meta->created_by.str);
+    }
+    meta = NULL;
     idxReader->close(idxReader);
 }
 

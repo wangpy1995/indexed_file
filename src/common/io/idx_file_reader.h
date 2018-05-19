@@ -12,7 +12,7 @@ typedef struct IndexedFileReader {
     FILE *fp;
     size_t pos;
 
-    const FileMetaData* (*readFileMeta)(struct IndexedFileReader *_this);
+    void (*readFileMeta)(struct IndexedFileReader *_this, FileMetaData *metaData);
 
     void (*read)(struct IndexedFileReader *_this, size_t size, void *res);
 

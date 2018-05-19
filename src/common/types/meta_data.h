@@ -20,17 +20,21 @@ struct PageEncodingStats {
 };
 struct ColumnMetaData {
     Type type;
+    unsigned short num_encodings;
     Encoding *encodings;
+    unsigned short num_paths;
     immutable_string *path_in_schema;
     CompressionCodec codec;
     int64_t num_values;
     int64_t total_uncompressed_size;
     int64_t total_compressed_size;
+    int32_t num_kvs;
     KeyValue *key_value_metadata;
     int64_t data_page_offset;
     int64_t index_page_offset;
     int64_t dictionary_page_offset;
     Statistics statistics;
+    unsigned short num_stats;
     PageEncodingStats *encoding_stats;
 };
 struct ColumnChunk {
@@ -48,7 +52,7 @@ struct RowGroup {
     ColumnChunk *columns;
     int64_t total_byte_size;
     int64_t num_rows;
-    unsigned short sorting_column_count;
+    unsigned short num_sorting_columns;
     SortingColumn *sorting_columns;
 };
 struct KeyValue {
@@ -64,15 +68,15 @@ struct ColumnOrder {
 //最大支持65535个字段  65535个rowGroup  INT_MAX个kv
 struct FileMetaData {
     const int32_t version;
-    const unsigned short schema_length;
+    const unsigned short num_schemas;
     SchemaElement *schema;
     int64_t num_rows;
-    const unsigned short group_length;
+    const unsigned short num_groups;
     RowGroup *row_groups;
-    const int32_t kv_length;
+    const int32_t num_kvs;
     KeyValue *key_value_metadata;
     immutable_string created_by;
-    const unsigned char column_order_length;
+    const unsigned char num_column_orders;
     ColumnOrder *column_orders;
 };
 #endif //INDEXED_FILE_META_DATA_H
