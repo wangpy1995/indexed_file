@@ -66,4 +66,7 @@ src/common/idx_constants.c
 src/common/idx_types.c
 
 src/common/types/statistics.c
+
+src/common/io/idx_file_reader.c
+src/common/io/idx_file_writer.c
 main.c)

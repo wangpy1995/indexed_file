@@ -6,6 +6,7 @@
 #define INDEXED_FILE_META_DATA_H
 
 #include "idx_types.h"
+#include "statistics.h"
 
 struct SortingColumn {
     int32_t column_idx;
@@ -66,12 +67,12 @@ struct FileMetaData {
     const unsigned short schema_length;
     SchemaElement *schema;
     int64_t num_rows;
-    const unsigned short group_count;
+    const unsigned short group_length;
     RowGroup *row_groups;
-    const int32_t kv_count;
+    const int32_t kv_length;
     KeyValue *key_value_metadata;
     immutable_string created_by;
-    const unsigned char column_order_count;
+    const unsigned char column_order_length;
     ColumnOrder *column_orders;
 };
 #endif //INDEXED_FILE_META_DATA_H

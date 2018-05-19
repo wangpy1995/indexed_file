@@ -72,10 +72,10 @@ struct LogicalType {
 };
 
 struct SchemaElement {
+    immutable_string name;
     Type type;
     int32_t type_length;
     FieldRepetitionType repetition_type;
-    immutable_string name;
     int32_t num_children;
     ConvertedType converted_type;
     int32_t scale;
