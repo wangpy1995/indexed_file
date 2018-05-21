@@ -62,11 +62,6 @@ src/api/reader.c
 
 src/common/util/str_utils.c
 
-src/common/idx_constants.c
-src/common/idx_types.c
-
-src/common/types/statistics.c
-
-src/common/io/idx_file_reader.c
-src/common/io/idx_file_writer.c
+src/common/io/file_meta_writer.c
+src/common/io/file_meta_reader.c
 main.c)

@@ -2,49 +2,32 @@
 // Created by wangpengyu6 on 18-5-3.
 //
 
-#include <common/io/idx_file_reader.h>
-#include <common/io/idx_file_writer.h>
+#include <common/io/file_meta_writer.h>
+#include <common/io/file_meta_reader.h>
 #include <common/types/meta_data.h>
 #include <common/types/schema.h>
-#include "api/reader.h"
-#include "common/types/statistics.h"
-#include "idx_constants.h"
-#include "src/common/idx_types.h"
-
-void testStatistics(void) {
-    initConstants();
-    immutable_string str = {.str= "1234", .length=4};
-
-    Statistics s1 = STATISTICS;
-    Statistics *s2 = initStatistics(EMPTY_STRING, str, -1, 0, EMPTY_STRING, EMPTY_STRING);
-    printf("%d\n", s1.equals(&s1, s2));
-
-    char str1[95], str2[95];
-    if (&s1) {
-        s1.mkString(&s1, str1);
-        printf("s1: %s\n", str1);
-        s1.free(&s1);
-    }
-    if (s2) {
-        s2->mkString(s2, str2);
-        printf("s2: %s\n", str2);
-        s2 = s2->free(s2);
-    }
-}
+#include <api/reader.h>
+#include <common/types/statistics.h>
+#include <idx_constants.h>
+#include <sys/shm.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <zconf.h>
 
 void testIO() {
     FILE *file;
 //    FILE *file = fopen("../resources/test.dat", "rb+");
 //    writeFooter(file);
 //    if (file)fclose(file);
-    file = fopen("../resources/test.dat", "rb+");
+    file = fopen("../resources/test_idx_file", "rb+");
     readFooter(file);
     if (file)fclose(file);
 }
 
-void testIndexedFileWriter(void) {
+void testMetaDataWriter(void) {
     FILE *fp = fopen("../resources/test_idx_file", "rb+");
-    IndexedFileWriter *idxWriter = createIndexedFileWriter(fp);
+    MetaDataWriter *idxWriter = createMetaDataWriter(fp);
+    size_t startPos = idxWriter->pos;
     ColumnOrder order = {};
     FileMetaData meta = {
             .version=001,
@@ -93,68 +76,66 @@ void testIndexedFileWriter(void) {
 
     idxWriter->writeFileMeta(idxWriter, meta);
     idxWriter->flush(idxWriter);
+
+    size_t metaLength = idxWriter->pos - startPos;
+    //fileMetaLength
+    idxWriter->write(idxWriter, sizeof(int32_t), &metaLength);
+    idxWriter->write(idxWriter, sizeof(int32_t), "IDX1");
+
     idxWriter->close(idxWriter);
 
+
     free(meta.schema);
-    meta.schema = NULL;
 }
 
-void testIndexedFileReader(void) {
+void testMetaDataReader(void) {
     FILE *fp = fopen("../resources/test_idx_file", "rb+");
-    IndexedFileReader *idxReader = createIndexedFileReader(fp);
+    MetaDataReader *idxReader = createMetaDataReader(fp);
 
-    const FileMetaData *meta = malloc(sizeof(FileMetaData));
+    FileMetaData *meta = malloc(sizeof(FileMetaData));
     idxReader->readFileMeta(idxReader, meta);
     printf("meta: %p\n", meta);
-    int i;
-    if (meta->schema) {
-        if (meta->schema->name.str) {
-            free(meta->schema->name.str);
-            meta->schema->name.str = NULL;
-        }
-        free(meta->schema);
-    }
-    if (meta->row_groups) {
-        for (i = 0; i < meta->num_groups; ++i) {
-            if (meta->row_groups->columns) {
-                free(meta->row_groups->columns);
-                meta->row_groups->columns=NULL;
-            }
-            if (meta->row_groups->sorting_columns) {
-                free(meta->row_groups->sorting_columns);
-                meta->row_groups->sorting_columns=NULL;
-            }
-        }
-        free(meta->row_groups);
-    }
-    if (meta->column_orders) {
-        free(meta->column_orders);
-    }
-    if (meta->key_value_metadata) {
-        for (i = 0; i < meta->num_kvs; ++i) {
-            if (meta->key_value_metadata->key.str) {
-                free(meta->key_value_metadata->key.str);
-                meta->key_value_metadata->key.str=NULL;
-            }
-            if (meta->key_value_metadata->value.str) {
-                free(meta->key_value_metadata->value.str);
-                meta->key_value_metadata->value.str=NULL;
-            }
-        }
-        free(meta->key_value_metadata);
-    }
-
-    if(meta->created_by.str){
-        free(meta->created_by.str);
-    }
-    meta = NULL;
+    freeFileMetaData(&meta);
     idxReader->close(idxReader);
 }
 
+void testReadAll(void) {
+    FILE *fp;
+    fp = fopen("../resources/test_idx_file", "rb+");
+    if (fp) {
+        fseek(fp, 0, SEEK_END);
+        long int fileLength = ftell(fp);
+        fseek(fp, fileLength - (MAGIC.length), SEEK_SET);
+        char magic[MAGIC.length];
+        fread(magic, MAGIC.length, 1, fp);
+        if (*((int *) MAGIC.str) == (*((int *) magic))) {
+            int footIndexLength;
+            fseek(fp, fileLength - MAGIC.length - sizeof(int), SEEK_SET);
+            fread(&footIndexLength, sizeof(int), 1, fp);
+            fclose(fp);
+            int fd = open("../resources/test_idx_file", O_RDONLY);
+            const char *buffer = mmap(NULL, footIndexLength, PROT_READ, MAP_SHARED, fd,
+                                      fileLength - MAGIC.length - sizeof(int) - footIndexLength);
+            close(fd);
+
+            printf("%s\n",buffer);
+
+            FileMetaData metaData = {
+                    .version=*((int *) buffer),
+                    .num_schemas =*((unsigned short *) (buffer + 2))
+            };
+            printf("meta: %p\n", metaData);
+        } else {
+            printf("expected MAGIC string: IDX1, actual %s.\n", magic);
+        }
+    }
+}
+
 int main(void) {
+//    testMetaDataWriter();
 //    testIO();
-//    testIndexedFileWriter();
-    testIndexedFileReader();
+//    testMetaDataReader();
+    testReadAll();
 //    printf("%ld\n", sizeof(struct Test));
     return 0;
 }

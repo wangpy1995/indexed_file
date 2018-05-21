@@ -15,8 +15,9 @@ void readFooter(FILE *file) {
         char magic[MAGIC.length];
         fread(magic, MAGIC.length, 1, file);
         if (*((int *) MAGIC.str) == (*((int *) magic))) {
-            const int footIndexLength;
-            fread((void *) &footIndexLength, fileLength - MAGIC.length - sizeof(int), 1, SEEK_SET);
+            int footIndexLength;
+            fseek(file,fileLength - MAGIC.length - sizeof(int),SEEK_SET);
+            fread(&footIndexLength, sizeof(int), 1, file);
             printf("foot index length: %d\n", footIndexLength);
         } else {
             printf("expected MAGIC string: IDX1, actual %s.\n", magic);

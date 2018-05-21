@@ -5,42 +5,42 @@
 #include <stdlib.h>
 #include <common/types/meta_data.h>
 #include <common/types/schema.h>
-#include "idx_file_writer.h"
+#include "file_meta_writer.h"
 #include <stdbool.h>
 
-static void write(IndexedFileWriter *_this, size_t size, void *data);
+static void write(MetaDataWriter *_this, size_t size, const void *data);
 
-static void seekTo(IndexedFileWriter *_this, size_t pos);
+static void seekTo(MetaDataWriter *_this, size_t pos);
 
-static void flush(IndexedFileWriter *_this);
+static void flush(MetaDataWriter *_this);
 
-static void close(IndexedFileWriter *_this);
+static void close(MetaDataWriter *_this);
 
-static void writeFileMeta(IndexedFileWriter *_this, FileMetaData metaData);
+static void writeFileMeta(MetaDataWriter *_this, FileMetaData metaData);
 
-static void writeSchemas(IndexedFileWriter *_this, unsigned short num_schemas, SchemaElement *schemas) ;
+static void writeSchemas(MetaDataWriter *_this, unsigned short num_schemas, SchemaElement *schemas) ;
 
-static void writeRowGroups(IndexedFileWriter *_this, unsigned short num_groups, RowGroup *rowGroups) ;
+static void writeRowGroups(MetaDataWriter *_this, unsigned short num_groups, RowGroup *rowGroups) ;
 
-static void writeKeyValues(IndexedFileWriter *_this, int32_t num_kvs, KeyValue *kvs) ;
+static void writeKeyValues(MetaDataWriter *_this, int32_t num_kvs, KeyValue *kvs) ;
 
-static void writeImmutableStrings(IndexedFileWriter *_this, int32_t num_str, immutable_string *strings) ;
+static void writeImmutableStrings(MetaDataWriter *_this, int32_t num_str, const immutable_string *strings) ;
 
-static void writeColumnMetaDatas(IndexedFileWriter *_this, unsigned short num_metas, ColumnMetaData *columnMetaDatas) ;
+static void writeColumnMetaDatas(MetaDataWriter *_this, unsigned short num_metas, ColumnMetaData *columnMetaDatas) ;
 
-static void writeColumnChunks(IndexedFileWriter *_this, unsigned short num_columns, ColumnChunk *columns) ;
-
-static void
-writeSortingColumns(IndexedFileWriter *_this, unsigned short num_sorting_columns, SortingColumn *sortingColumns) ;
-
-static void writeStatistics(IndexedFileWriter *_this, int32_t num_statistics, Statistics *statistics) ;
+static void writeColumnChunks(MetaDataWriter *_this, unsigned short num_columns, ColumnChunk *columns) ;
 
 static void
-writePageEncodingStats(IndexedFileWriter *_this, unsigned short num_stats, PageEncodingStats *encoding_stats) ;
+writeSortingColumns(MetaDataWriter *_this, unsigned short num_sorting_columns, SortingColumn *sortingColumns) ;
 
-IndexedFileWriter *createIndexedFileWriter(FILE *fp) {
+static void writeStatistics(MetaDataWriter *_this, int32_t num_statistics, Statistics *statistics) ;
+
+static void
+writePageEncodingStats(MetaDataWriter *_this, unsigned short num_stats, PageEncodingStats *encoding_stats) ;
+
+MetaDataWriter *createMetaDataWriter(FILE *fp) {
     if (fp) {
-        IndexedFileWriter *writer = malloc(sizeof(IndexedFileWriter));
+        MetaDataWriter *writer = malloc(sizeof(MetaDataWriter));
         writer->fp = fp;
         writer->pos = 0;
         writer->writeFileMeta = writeFileMeta;
@@ -53,36 +53,36 @@ IndexedFileWriter *createIndexedFileWriter(FILE *fp) {
     return NULL;
 }
 
-static void write(IndexedFileWriter *_this, size_t size, void *data) {
+static inline void write(MetaDataWriter *_this, size_t size, const void *data) {
     if (_this && size > 0 && data) {
-        fseek((FILE *) _this->fp, _this->pos, SEEK_SET);
-        fwrite(data, size, 1, (FILE *) _this->fp);
+        fseek(_this->fp, _this->pos, SEEK_SET);
+        fwrite(data, size, 1, _this->fp);
         _this->pos += size;
     }
 }
 
-static void seekTo(IndexedFileWriter *_this, size_t pos) {
+static inline void seekTo(MetaDataWriter *_this, size_t pos) {
     if (_this) {
         _this->pos = pos;
     }
 }
 
-static void flush(IndexedFileWriter *_this) {
+static inline void flush(MetaDataWriter *_this) {
     if (_this) {
         fflush(_this->fp);
     }
 }
 
-static void close(IndexedFileWriter *_this) {
+static inline void close(MetaDataWriter *_this) {
     if (_this) {
         fclose(_this->fp);
         free(_this);
         _this->fp = NULL;
-        _this = NULL;
     }
 }
 
-static void writeFileMeta(IndexedFileWriter *_this, const FileMetaData metaData) {
+//TODO 更改为使用thrift方式
+static void writeFileMeta(MetaDataWriter *_this, const FileMetaData metaData) {
     if (_this) {
         //version  int32
         write(_this, sizeof(int32_t), &(metaData.version));
@@ -105,7 +105,7 @@ static void writeFileMeta(IndexedFileWriter *_this, const FileMetaData metaData)
     }
 }
 
-static void writeSchemas(IndexedFileWriter *_this, unsigned short num_schemas, SchemaElement *schemas) {
+static void writeSchemas(MetaDataWriter *_this, unsigned short num_schemas, SchemaElement *schemas) {
     int i;
     for (i = 0; i < num_schemas; ++i) {
         SchemaElement schema = schemas[i];
@@ -142,7 +142,7 @@ static void writeSchemas(IndexedFileWriter *_this, unsigned short num_schemas, S
     }
 }
 
-static void writeRowGroups(IndexedFileWriter *_this, unsigned short num_groups, RowGroup *rowGroups) {
+static void writeRowGroups(MetaDataWriter *_this, unsigned short num_groups, RowGroup *rowGroups) {
     int i;
     for (i = 0; i < num_groups; ++i) {
         RowGroup rowGroup = rowGroups[i];
@@ -157,7 +157,7 @@ static void writeRowGroups(IndexedFileWriter *_this, unsigned short num_groups, 
     }
 }
 
-static void writeColumnChunks(IndexedFileWriter *_this, unsigned short num_columns, ColumnChunk *columns) {
+static void writeColumnChunks(MetaDataWriter *_this, unsigned short num_columns, ColumnChunk *columns) {
     int i;
     for (i = 0; i < num_columns; ++i) {
         ColumnChunk column = columns[i];
@@ -171,7 +171,7 @@ static void writeColumnChunks(IndexedFileWriter *_this, unsigned short num_colum
     }
 }
 
-static void writeColumnMetaDatas(IndexedFileWriter *_this, unsigned short num_metas, ColumnMetaData *columnMetaDatas) {
+static void writeColumnMetaDatas(MetaDataWriter *_this, unsigned short num_metas, ColumnMetaData *columnMetaDatas) {
     int i;
     for (i = 0; i < num_metas; ++i) {
         ColumnMetaData columnMetaData = columnMetaDatas[i];
@@ -200,7 +200,7 @@ static void writeColumnMetaDatas(IndexedFileWriter *_this, unsigned short num_me
     }
 }
 
-static void writeKeyValues(IndexedFileWriter *_this, int32_t num_kvs, KeyValue *kvs) {
+static void writeKeyValues(MetaDataWriter *_this, int32_t num_kvs, KeyValue *kvs) {
     int i;
     for (i = 0; i < num_kvs; ++i) {
         KeyValue kv = kvs[i];
@@ -209,7 +209,7 @@ static void writeKeyValues(IndexedFileWriter *_this, int32_t num_kvs, KeyValue *
     }
 }
 
-static void writeStatistics(IndexedFileWriter *_this, int32_t num_statistics, Statistics *statistics) {
+static void writeStatistics(MetaDataWriter *_this, int32_t num_statistics, Statistics *statistics) {
     int i;
     for (i = 0; i < num_statistics; ++i) {
         Statistics s = statistics[i];
@@ -223,7 +223,7 @@ static void writeStatistics(IndexedFileWriter *_this, int32_t num_statistics, St
 }
 
 static void
-writePageEncodingStats(IndexedFileWriter *_this, unsigned short num_stats, PageEncodingStats *encoding_stats) {
+writePageEncodingStats(MetaDataWriter *_this, unsigned short num_stats, PageEncodingStats *encoding_stats) {
     int i;
     for (i = 0; i < num_stats; ++i) {
         PageEncodingStats stats = encoding_stats[i];
@@ -234,7 +234,7 @@ writePageEncodingStats(IndexedFileWriter *_this, unsigned short num_stats, PageE
 }
 
 static void
-writeSortingColumns(IndexedFileWriter *_this, unsigned short num_sorting_columns, SortingColumn *sortingColumns) {
+writeSortingColumns(MetaDataWriter *_this, unsigned short num_sorting_columns, SortingColumn *sortingColumns) {
     int i;
     for (i = 0; i < num_sorting_columns; ++i) {
         SortingColumn sortingColumn = sortingColumns[i];
@@ -244,11 +244,11 @@ writeSortingColumns(IndexedFileWriter *_this, unsigned short num_sorting_columns
     }
 }
 
-static void writeImmutableStrings(IndexedFileWriter *_this, int32_t num_str, immutable_string *strings) {
+static void writeImmutableStrings(MetaDataWriter *_this, int32_t num_str, const immutable_string *strings) {
     int i;
     for (i = 0; i < num_str; ++i) {
         immutable_string str = strings[i];
         write(_this, sizeof(unsigned short), &(str.length));
-        write(_this, str.length * sizeof(char), (void *) str.str);
+        write(_this, str.length * sizeof(char), str.str);
     }
 }

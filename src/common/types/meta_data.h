@@ -7,6 +7,7 @@
 
 #include "idx_types.h"
 #include "statistics.h"
+#include "schema.h"
 
 struct SortingColumn {
     int32_t column_idx;
@@ -67,16 +68,66 @@ struct ColumnOrder {
 
 //最大支持65535个字段  65535个rowGroup  INT_MAX个kv
 struct FileMetaData {
-    const int32_t version;
-    const unsigned short num_schemas;
+    int32_t version;
+    unsigned short num_schemas;
     SchemaElement *schema;
     int64_t num_rows;
-    const unsigned short num_groups;
+    unsigned short num_groups;
     RowGroup *row_groups;
-    const int32_t num_kvs;
+    int32_t num_kvs;
     KeyValue *key_value_metadata;
     immutable_string created_by;
-    const unsigned char num_column_orders;
+    unsigned char num_column_orders;
     ColumnOrder *column_orders;
 };
+
+
+static void freeFileMetaData(FileMetaData **metaPointer) {
+    if (metaPointer && *metaPointer) {
+        const FileMetaData *meta = *metaPointer;
+        int i;
+        if (meta->schema) {
+            if (meta->schema->name.str) {
+                free(meta->schema->name.str);
+                meta->schema->name.str = NULL;
+            }
+            free(meta->schema);
+        }
+        if (meta->row_groups) {
+            for (i = 0; i < meta->num_groups; ++i) {
+                if (meta->row_groups->columns) {
+                    free(meta->row_groups->columns);
+                    meta->row_groups->columns = NULL;
+                }
+                if (meta->row_groups->sorting_columns) {
+                    free(meta->row_groups->sorting_columns);
+                    meta->row_groups->sorting_columns = NULL;
+                }
+            }
+            free(meta->row_groups);
+        }
+        if (meta->column_orders) {
+            free(meta->column_orders);
+        }
+        if (meta->key_value_metadata) {
+            for (i = 0; i < meta->num_kvs; ++i) {
+                if (meta->key_value_metadata->key.str) {
+                    free(meta->key_value_metadata->key.str);
+                    meta->key_value_metadata->key.str = NULL;
+                }
+                if (meta->key_value_metadata->value.str) {
+                    free(meta->key_value_metadata->value.str);
+                    meta->key_value_metadata->value.str = NULL;
+                }
+            }
+            free(meta->key_value_metadata);
+        }
+
+        if (meta->created_by.str) {
+            free(meta->created_by.str);
+        }
+        *metaPointer = NULL;
+    }
+}
+
 #endif //INDEXED_FILE_META_DATA_H
