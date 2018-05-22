@@ -13,6 +13,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <zconf.h>
+#include <common/io/file_meta_buffer.h>
 
 void testIO() {
     FILE *file;
@@ -118,13 +119,17 @@ void testReadAll(void) {
                                       fileLength - MAGIC.length - sizeof(int) - footIndexLength);
             close(fd);
 
+            FileMetaBuffer *fbuffer = createFileMetaBuffer(buffer);
+            FileMetaData *meta = malloc(sizeof(FileMetaData));
+            fbuffer->readFileMeta(fbuffer,meta);
+
             printf("%s\n",buffer);
 
-            FileMetaData metaData = {
-                    .version=*((int *) buffer),
-                    .num_schemas =*((unsigned short *) (buffer + 2))
-            };
-            printf("meta: %p\n", metaData);
+//            FileMetaData metaData = {
+//                    .version=*((int *) buffer),
+//                    .num_schemas =*((unsigned short *) (buffer + 2))
+//            };
+            printf("meta: %p\n", meta);
         } else {
             printf("expected MAGIC string: IDX1, actual %s.\n", magic);
         }

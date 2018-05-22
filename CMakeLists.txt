@@ -64,4 +64,6 @@ src/common/util/str_utils.c
 
 src/common/io/file_meta_writer.c
 src/common/io/file_meta_reader.c
+
+src/common/io/file_meta_buffer.c
 main.c)
