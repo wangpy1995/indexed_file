@@ -2,6 +2,8 @@
 // Created by wangpengyu6 on 18-5-19.
 //
 
+//从文件流中读取FileMetaData
+
 #ifndef INDEXED_FILE_META_DATA_READER_H
 #define INDEXED_FILE_META_DATA_READER_H
 

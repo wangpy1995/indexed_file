@@ -120,16 +120,15 @@ void testReadAll(void) {
             close(fd);
 
             FileMetaBuffer *fbuffer = createFileMetaBuffer(buffer);
-            FileMetaData *meta = malloc(sizeof(FileMetaData));
-            fbuffer->readFileMeta(fbuffer,meta);
-
-            printf("%s\n",buffer);
 
 //            FileMetaData metaData = {
 //                    .version=*((int *) buffer),
 //                    .num_schemas =*((unsigned short *) (buffer + 2))
 //            };
-            printf("meta: %p\n", meta);
+            printf("meta: %p\n", fbuffer->fileMeta);
+            fbuffer->freeFileMeta(fbuffer);
+
+            printf("%s\n",buffer);
         } else {
             printf("expected MAGIC string: IDX1, actual %s.\n", magic);
         }

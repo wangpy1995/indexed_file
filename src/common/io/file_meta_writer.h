@@ -2,6 +2,8 @@
 // Created by wangpengyu6 on 18-5-19.
 //
 
+//将FileMetaData中的实际数据写入到文件中
+
 #ifndef INDEXED_FILE_META_DATA_WRITER_H
 #define INDEXED_FILE_META_DATA_WRITER_H
 
