@@ -81,12 +81,11 @@ typedef enum BoundaryOrder {
     DESCENDING = 2
 } BoundaryOrder;
 
-
-////////////////////////////////////////////////////////////
-//   Logical Types
-////////////////////////////////////////////////////////////
-
 typedef struct Statistics Statistics;
+
+////////////////////////////
+////     邏輯類型
+////////////////////////////
 typedef struct StringType StringType;
 typedef struct UUIDType UUIDType;
 typedef struct MapType MapType;
@@ -104,6 +103,10 @@ typedef struct IntType IntType;
 typedef struct JsonType JsonType;
 typedef struct BsonType BsonType;
 typedef struct LogicalType LogicalType;
+
+//////////////////////////////
+////  meta 以及 page 相關屬性
+//////////////////////////////
 typedef struct SchemaElement SchemaElement;
 typedef struct DataPageHeader DataPageHeader;
 typedef struct IndexPageHeader IndexPageHeader;

@@ -13,73 +13,111 @@ struct SortingColumn {
     int32_t column_idx;
     bool descending;
     bool nulls_first;
-};
+} __attribute__ ((packed));
 struct PageEncodingStats {
     PageType page_type;
     Encoding encoding;
     int32_t count;
-};
+}__attribute__ ((packed));
+/*單列相關信息*/
 struct ColumnMetaData {
+    /*字段類型*/
     Type type;
-    unsigned short num_encodings;
+    /*數據編碼信息*/
+    unsigned short encoding_len;
     Encoding *encodings;
-    unsigned short num_paths;
-    immutable_string *path_in_schema;
+
+    unsigned short path_len;
+    String *path_in_schema;
+
+    /*數據壓縮類型*/
     CompressionCodec codec;
+
+    /*該列值的數量*/
     int64_t num_values;
+    /*編碼與壓縮前的數據字節數*/
     int64_t total_uncompressed_size;
+    /*壓縮後字節數*/
     int64_t total_compressed_size;
-    int32_t num_kvs;
+    /*鍵值對*/
+    int32_t kv_len;
     KeyValue *key_value_metadata;
+    /*該列數據在 data page 的偏移量*/
     int64_t data_page_offset;
+    /*該列在 index page 中的偏移量*/
     int64_t index_page_offset;
+    /*該列在 dictionary page 中的偏移量*/
     int64_t dictionary_page_offset;
+    /*列簡單屬性*/
     Statistics statistics;
-    unsigned short num_stats;
+
+    unsigned short stat_len;
     PageEncodingStats *encoding_stats;
-};
+}__attribute__ ((packed));
+
 struct ColumnChunk {
-    immutable_string file_path;
+    String file_path;
     int64_t file_offset;
     ColumnMetaData meta_data;
     int64_t offset_index_offset;
     int32_t offset_index_length;
     int64_t column_index_offset;
     int32_t column_index_length;
-};
+}__attribute__ ((packed));
 
+/*保存多組列信息*/
 struct RowGroup {
-    unsigned short num_columns;
+    /*列信息*/
+    unsigned short chunk_len;
     ColumnChunk *columns;
+    /*列所佔字節數*/
     int64_t total_byte_size;
+    /*列記錄總數*/
     int64_t num_rows;
-    unsigned short num_sorting_columns;
+    /*列排序規則*/
+    unsigned short sorting_columns_len;
     SortingColumn *sorting_columns;
-};
+}__attribute__ ((packed));
+
+/*自定義鍵值對信息*/
 struct KeyValue {
-    immutable_string key;
-    immutable_string value;
-};
+    String key;
+    String value;
+}__attribute__ ((packed));
+
 struct TypeDefinedOrder {
-};
+}__attribute__ ((packed));
 struct ColumnOrder {
     TypeDefinedOrder TYPE_ORDER;
-};
+}__attribute__ ((packed));
 
 //最大支持65535个字段  65535个rowGroup  INT_MAX个kv
 struct FileMetaData {
+    /*版本信息*/
     int32_t version;
-    unsigned short num_schemas;
+
+    /*schema element 信息字節數,可用於讀取文件時跳過*/
+    unsigned short schema_len;
     SchemaElement *schema;
+
+    /*文件保存記錄總數*/
     int64_t num_rows;
-    unsigned short num_groups;
+
+    //row group 信息字節數,可用於讀取文件時跳過
+    unsigned short group_len;
     RowGroup *row_groups;
-    int32_t num_kvs;
+
+    /*key value 信息字節數,可用於讀取文件時跳過*/
+    int32_t kv_len;
     KeyValue *key_value_metadata;
-    immutable_string created_by;
-    unsigned char num_column_orders;
+
+    /*文件創建信息*/
+    String created_by;
+
+    /*內部排序相關信息*/
+    unsigned char order_len;
     ColumnOrder *column_orders;
-};
+}__attribute__ ((packed));
 
 
 static void freeFileMetaData(FileMetaData **metaPointer) {
@@ -94,7 +132,7 @@ static void freeFileMetaData(FileMetaData **metaPointer) {
             free(meta->schema);
         }
         if (meta->row_groups) {
-            for (i = 0; i < meta->num_groups; ++i) {
+            for (i = 0; i < meta->group_len; ++i) {
                 if (meta->row_groups->columns) {
                     free(meta->row_groups->columns);
                     meta->row_groups->columns = NULL;
@@ -110,7 +148,7 @@ static void freeFileMetaData(FileMetaData **metaPointer) {
             free(meta->column_orders);
         }
         if (meta->key_value_metadata) {
-            for (i = 0; i < meta->num_kvs; ++i) {
+            for (i = 0; i < meta->kv_len; ++i) {
                 if (meta->key_value_metadata->key.str) {
                     free(meta->key_value_metadata->key.str);
                     meta->key_value_metadata->key.str = NULL;

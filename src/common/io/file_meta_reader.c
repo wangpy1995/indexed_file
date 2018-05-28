@@ -21,7 +21,7 @@ static void readRowGroups(MetaDataReader *_this, unsigned short num_groups, RowG
 
 static void readKeyValues(MetaDataReader *_this, int32_t num_kvs, KeyValue *kvs);
 
-static void readImmutableStrings(MetaDataReader *_this, int32_t num_str, immutable_string *str);
+static void readImmutableStrings(MetaDataReader *_this, int32_t num_str, String *str);
 
 static void readColumnChunks(MetaDataReader *_this, unsigned short num_columns, ColumnChunk *columns);
 
@@ -85,35 +85,35 @@ void readFileMeta(MetaDataReader *_this, FileMetaData *metaData) {
         read(_this, sizeof(int32_t), &(metaData->version));
 
         //schemas
-        read(_this, sizeof(unsigned short), &(metaData->num_schemas));
-        if (metaData->num_schemas > 0) {
-            metaData->schema = malloc(metaData->num_schemas * sizeof(SchemaElement));
-            readSchemas(_this, metaData->num_schemas, metaData->schema);
+        read(_this, sizeof(unsigned short), &(metaData->schema_len));
+        if (metaData->schema_len > 0) {
+            metaData->schema = malloc(metaData->schema_len * sizeof(SchemaElement));
+            readSchemas(_this, metaData->schema_len, metaData->schema);
         }
         //numRows int64
         read(_this, sizeof(int64_t), &(metaData->num_rows));
 
         //rowGroups
-        read(_this, sizeof(unsigned short), &(metaData->num_groups));
-        if (metaData->num_groups > 0) {
-            metaData->row_groups = malloc(metaData->num_schemas * sizeof(RowGroup));
-            readRowGroups(_this, metaData->num_groups, metaData->row_groups);
+        read(_this, sizeof(unsigned short), &(metaData->group_len));
+        if (metaData->group_len > 0) {
+            metaData->row_groups = malloc(metaData->schema_len * sizeof(RowGroup));
+            readRowGroups(_this, metaData->group_len, metaData->row_groups);
         }
 
         //kv
-        read(_this, sizeof(int32_t), &(metaData->num_kvs));
-        if (metaData->num_kvs > 0) {
-            metaData->key_value_metadata = malloc(metaData->num_kvs * sizeof(KeyValue));
-            readKeyValues(_this, metaData->num_kvs, metaData->key_value_metadata);
+        read(_this, sizeof(int32_t), &(metaData->kv_len));
+        if (metaData->kv_len > 0) {
+            metaData->key_value_metadata = malloc(metaData->kv_len * sizeof(KeyValue));
+            readKeyValues(_this, metaData->kv_len, metaData->key_value_metadata);
         }
         //createBy
         readImmutableStrings(_this, 1, &(metaData->created_by));
 
         //columnOrders
-        read(_this, sizeof(unsigned char), &(metaData->num_column_orders));
-        if (metaData->num_column_orders > 0) {
-            metaData->column_orders = malloc(metaData->num_column_orders * sizeof(ColumnOrder));
-            read(_this, metaData->num_column_orders * sizeof(ColumnOrder), metaData->column_orders);
+        read(_this, sizeof(unsigned char), &(metaData->order_len));
+        if (metaData->order_len > 0) {
+            metaData->column_orders = malloc(metaData->order_len * sizeof(ColumnOrder));
+            read(_this, metaData->order_len * sizeof(ColumnOrder), metaData->column_orders);
         }
     }
 }
@@ -158,17 +158,17 @@ static void readRowGroups(MetaDataReader *_this, unsigned short num_groups, RowG
     if (rowGroups) {
         int i;
         for (i = 0; i < num_groups; ++i) {
-            read(_this, sizeof(unsigned short), &(rowGroups[i].num_columns));
-            if (rowGroups[i].num_columns > 0) {
-                rowGroups[i].columns = malloc(rowGroups[i].num_columns * sizeof(ColumnChunk));
-                readColumnChunks(_this, rowGroups[i].num_columns, rowGroups[i].columns);
+            read(_this, sizeof(unsigned short), &(rowGroups[i].chunk_len));
+            if (rowGroups[i].chunk_len > 0) {
+                rowGroups[i].columns = malloc(rowGroups[i].chunk_len * sizeof(ColumnChunk));
+                readColumnChunks(_this, rowGroups[i].chunk_len, rowGroups[i].columns);
             }
             read(_this, sizeof(int64_t), &(rowGroups[i].total_byte_size));
             read(_this, sizeof(int64_t), &(rowGroups[i].num_rows));
-            read(_this, sizeof(int64_t), &(rowGroups[i].num_sorting_columns));
+            read(_this, sizeof(int64_t), &(rowGroups[i].sorting_columns_len));
             if (rowGroups[i].sorting_columns > 0) {
-                rowGroups[i].sorting_columns = malloc(rowGroups[i].num_sorting_columns * sizeof(SortingColumn));
-                readSortingColumns(_this, rowGroups[i].num_sorting_columns, rowGroups[i].sorting_columns);
+                rowGroups[i].sorting_columns = malloc(rowGroups[i].sorting_columns_len * sizeof(SortingColumn));
+                readSortingColumns(_this, rowGroups[i].sorting_columns_len, rowGroups[i].sorting_columns);
             }
         }
     }
@@ -195,26 +195,26 @@ static void readColumnMetaDatas(MetaDataReader *_this, unsigned short num_metas,
         for (i = 0; i < num_metas; ++i) {
             read(_this, sizeof(Type), &(columnMetaDatas[i].type));
 
-            read(_this, sizeof(unsigned short), &(columnMetaDatas[i].num_encodings));
-            if (columnMetaDatas[i].num_encodings > 0) {
-                columnMetaDatas[i].encodings = malloc(columnMetaDatas[i].num_encodings * sizeof(Encoding));
-                read(_this, columnMetaDatas[i].num_encodings * sizeof(Encoding), columnMetaDatas[i].encodings);
+            read(_this, sizeof(unsigned short), &(columnMetaDatas[i].encoding_len));
+            if (columnMetaDatas[i].encoding_len > 0) {
+                columnMetaDatas[i].encodings = malloc(columnMetaDatas[i].encoding_len * sizeof(Encoding));
+                read(_this, columnMetaDatas[i].encoding_len * sizeof(Encoding), columnMetaDatas[i].encodings);
             }
 
-            read(_this, sizeof(unsigned short), &(columnMetaDatas[i].num_paths));
-            if (columnMetaDatas[i].num_paths > 0) {
-                columnMetaDatas[i].path_in_schema = malloc(columnMetaDatas[i].num_paths * sizeof(immutable_string));
-                readImmutableStrings(_this, columnMetaDatas[i].num_paths, columnMetaDatas[i].path_in_schema);
+            read(_this, sizeof(unsigned short), &(columnMetaDatas[i].path_len));
+            if (columnMetaDatas[i].path_len > 0) {
+                columnMetaDatas[i].path_in_schema = malloc(columnMetaDatas[i].path_len * sizeof(String));
+                readImmutableStrings(_this, columnMetaDatas[i].path_len, columnMetaDatas[i].path_in_schema);
             }
             read(_this, sizeof(CompressionCodec), &(columnMetaDatas[i].codec));
             read(_this, sizeof(int64_t), &(columnMetaDatas[i].num_values));
             read(_this, sizeof(int64_t), &(columnMetaDatas[i].total_uncompressed_size));
             read(_this, sizeof(int64_t), &(columnMetaDatas[i].total_compressed_size));
 
-            read(_this, sizeof(int32_t), &(columnMetaDatas[i].num_kvs));
-            if (columnMetaDatas[i].num_kvs > 0) {
-                columnMetaDatas[i].key_value_metadata = malloc(columnMetaDatas[i].num_kvs * sizeof(KeyValue));
-                readKeyValues(_this, columnMetaDatas[i].num_kvs, columnMetaDatas[i].key_value_metadata);
+            read(_this, sizeof(int32_t), &(columnMetaDatas[i].kv_len));
+            if (columnMetaDatas[i].kv_len > 0) {
+                columnMetaDatas[i].key_value_metadata = malloc(columnMetaDatas[i].kv_len * sizeof(KeyValue));
+                readKeyValues(_this, columnMetaDatas[i].kv_len, columnMetaDatas[i].key_value_metadata);
             }
 
             read(_this, sizeof(int64_t), &(columnMetaDatas[i].data_page_offset));
@@ -223,10 +223,10 @@ static void readColumnMetaDatas(MetaDataReader *_this, unsigned short num_metas,
 
             readStatistics(_this, 1, &(columnMetaDatas[i].statistics));
 
-            read(_this, sizeof(unsigned short), &(columnMetaDatas[i].num_stats));
-            if (columnMetaDatas[i].num_stats > 0) {
-                columnMetaDatas[i].encoding_stats = malloc(columnMetaDatas[i].num_stats * sizeof(PageEncodingStats));
-                readPageEncodingStats(_this, columnMetaDatas[i].num_stats, columnMetaDatas[i].encoding_stats);
+            read(_this, sizeof(unsigned short), &(columnMetaDatas[i].stat_len));
+            if (columnMetaDatas[i].stat_len > 0) {
+                columnMetaDatas[i].encoding_stats = malloc(columnMetaDatas[i].stat_len * sizeof(PageEncodingStats));
+                readPageEncodingStats(_this, columnMetaDatas[i].stat_len, columnMetaDatas[i].encoding_stats);
             }
         }
     }
@@ -279,7 +279,7 @@ readSortingColumns(MetaDataReader *_this, unsigned short num_sorting_columns, So
     }
 }
 
-static void readImmutableStrings(MetaDataReader *_this, int32_t num_str, immutable_string *str) {
+static void readImmutableStrings(MetaDataReader *_this, int32_t num_str, String *str) {
     if (str && num_str > 0) {
         int i;
         for (i = 0; i < num_str; ++i) {

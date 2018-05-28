@@ -18,25 +18,25 @@ static void close(MetaDataWriter *_this);
 
 static void writeFileMeta(MetaDataWriter *_this, FileMetaData metaData);
 
-static void writeSchemas(MetaDataWriter *_this, unsigned short num_schemas, SchemaElement *schemas) ;
+static void writeSchemas(MetaDataWriter *_this, unsigned short num_schemas, SchemaElement *schemas);
 
-static void writeRowGroups(MetaDataWriter *_this, unsigned short num_groups, RowGroup *rowGroups) ;
+static void writeRowGroups(MetaDataWriter *_this, unsigned short num_groups, RowGroup *rowGroups);
 
-static void writeKeyValues(MetaDataWriter *_this, int32_t num_kvs, KeyValue *kvs) ;
+static void writeKeyValues(MetaDataWriter *_this, int32_t num_kvs, KeyValue *kvs);
 
-static void writeImmutableStrings(MetaDataWriter *_this, int32_t num_str, const immutable_string *strings) ;
+static void writeImmutableStrings(MetaDataWriter *_this, int32_t num_str, const String *strings);
 
-static void writeColumnMetaDatas(MetaDataWriter *_this, unsigned short num_metas, ColumnMetaData *columnMetaDatas) ;
+static void writeColumnMetaDatas(MetaDataWriter *_this, unsigned short num_metas, ColumnMetaData *columnMetaDatas);
 
-static void writeColumnChunks(MetaDataWriter *_this, unsigned short num_columns, ColumnChunk *columns) ;
-
-static void
-writeSortingColumns(MetaDataWriter *_this, unsigned short num_sorting_columns, SortingColumn *sortingColumns) ;
-
-static void writeStatistics(MetaDataWriter *_this, int32_t num_statistics, Statistics *statistics) ;
+static void writeColumnChunks(MetaDataWriter *_this, unsigned short num_columns, ColumnChunk *columns);
 
 static void
-writePageEncodingStats(MetaDataWriter *_this, unsigned short num_stats, PageEncodingStats *encoding_stats) ;
+writeSortingColumns(MetaDataWriter *_this, unsigned short num_sorting_columns, SortingColumn *sortingColumns);
+
+static void writeStatistics(MetaDataWriter *_this, int32_t num_statistics, Statistics *statistics);
+
+static void
+writePageEncodingStats(MetaDataWriter *_this, unsigned short num_stats, PageEncodingStats *encoding_stats);
 
 MetaDataWriter *createMetaDataWriter(FILE *fp) {
     if (fp) {
@@ -84,24 +84,31 @@ static inline void close(MetaDataWriter *_this) {
 //TODO 更改为使用thrift方式
 static void writeFileMeta(MetaDataWriter *_this, const FileMetaData metaData) {
     if (_this) {
-        //version  int32
+        /*version  int32*/
         write(_this, sizeof(int32_t), &(metaData.version));
-        //schema_len  int16  节省空间  需要单属性写入
-        write(_this, sizeof(unsigned short), &(metaData.num_schemas));
-        writeSchemas(_this, metaData.num_schemas, metaData.schema);
-        //numRows int64
+
+        /*schema_len  int16  节省空间以及強制轉換  需要单字節對齊*/
+        write(_this, sizeof(unsigned short), &(metaData.schema_len));
+        write(_this, metaData.schema_len, metaData.schema);
+//        writeSchemas(_this, metaData.schema_len, metaData.schema);
+
+        /*numRows int64*/
         write(_this, sizeof(int64_t), &(metaData.num_rows));
-        //rowGroups
-        write(_this, sizeof(unsigned short), &(metaData.num_groups));
-        writeRowGroups(_this, metaData.num_groups, metaData.row_groups);
-        //kv
-        write(_this, sizeof(int32_t), &(metaData.num_kvs));
-        writeKeyValues(_this, metaData.num_kvs, metaData.key_value_metadata);
-        //createBy
+        /*rowGroups*/
+        write(_this, sizeof(unsigned short), &(metaData.group_len));
+        writeRowGroups(_this, metaData.group_len, metaData.row_groups);
+
+        /*kv*/
+        write(_this, sizeof(int32_t), &(metaData.kv_len));
+        write(_this, (size_t) metaData.kv_len, metaData.key_value_metadata);
+//        writeKeyValues(_this, metaData.kv_len, metaData.key_value_metadata);
+
+        /*createBy*/
         writeImmutableStrings(_this, 1, &(metaData.created_by));
-        //columnOrders
-        write(_this, sizeof(unsigned char), &(metaData.num_column_orders));
-        write(_this, metaData.num_column_orders* sizeof(ColumnOrder), metaData.column_orders);
+
+        /*columnOrders*/
+        write(_this, sizeof(unsigned char), &(metaData.order_len));
+        write(_this, metaData.order_len, metaData.column_orders);
     }
 }
 
@@ -147,13 +154,13 @@ static void writeRowGroups(MetaDataWriter *_this, unsigned short num_groups, Row
     for (i = 0; i < num_groups; ++i) {
         RowGroup rowGroup = rowGroups[i];
 
-        write(_this, sizeof(unsigned short), &(rowGroup.num_columns));
-        writeColumnChunks(_this, rowGroup.num_columns, rowGroup.columns);
+        write(_this, sizeof(unsigned short), &(rowGroup.chunk_len));
+        writeColumnChunks(_this, rowGroup.chunk_len, rowGroup.columns);
         write(_this, sizeof(int64_t), &(rowGroup.total_byte_size));
         write(_this, sizeof(int64_t), &(rowGroup.num_rows));
-        write(_this, sizeof(int64_t), &(rowGroup.num_sorting_columns));
+        write(_this, sizeof(int64_t), &(rowGroup.sorting_columns_len));
         write(_this, sizeof(int64_t), &(rowGroup.sorting_columns));
-        writeSortingColumns(_this, rowGroup.num_sorting_columns, rowGroup.sorting_columns);
+        writeSortingColumns(_this, rowGroup.sorting_columns_len, rowGroup.sorting_columns);
     }
 }
 
@@ -176,17 +183,17 @@ static void writeColumnMetaDatas(MetaDataWriter *_this, unsigned short num_metas
     for (i = 0; i < num_metas; ++i) {
         ColumnMetaData columnMetaData = columnMetaDatas[i];
         write(_this, sizeof(Type), &(columnMetaData.type));
-        write(_this, sizeof(unsigned short), &(columnMetaData.num_encodings));
-        write(_this, columnMetaData.num_encodings * sizeof(Encoding), columnMetaData.encodings);
-        write(_this, sizeof(unsigned short), &(columnMetaData.num_paths));
-        writeImmutableStrings(_this, columnMetaData.num_paths, columnMetaData.path_in_schema);
+        write(_this, sizeof(unsigned short), &(columnMetaData.encoding_len));
+        write(_this, columnMetaData.encoding_len * sizeof(Encoding), columnMetaData.encodings);
+        write(_this, sizeof(unsigned short), &(columnMetaData.path_len));
+        writeImmutableStrings(_this, columnMetaData.path_len, columnMetaData.path_in_schema);
         write(_this, sizeof(CompressionCodec), &(columnMetaData.codec));
         write(_this, sizeof(int64_t), &(columnMetaData.num_values));
         write(_this, sizeof(int64_t), &(columnMetaData.total_uncompressed_size));
         write(_this, sizeof(int64_t), &(columnMetaData.total_compressed_size));
 
-        write(_this, sizeof(int32_t), &(columnMetaData.num_kvs));
-        writeKeyValues(_this, columnMetaData.num_kvs, columnMetaData.key_value_metadata);
+        write(_this, sizeof(int32_t), &(columnMetaData.kv_len));
+        writeKeyValues(_this, columnMetaData.kv_len, columnMetaData.key_value_metadata);
 
         write(_this, sizeof(int64_t), &(columnMetaData.data_page_offset));
         write(_this, sizeof(int64_t), &(columnMetaData.index_page_offset));
@@ -195,7 +202,7 @@ static void writeColumnMetaDatas(MetaDataWriter *_this, unsigned short num_metas
 
         writeStatistics(_this, 1, &(columnMetaData.statistics));
 
-        write(_this, sizeof(unsigned short), &(columnMetaData.num_stats));
+        write(_this, sizeof(unsigned short), &(columnMetaData.stat_len));
         writePageEncodingStats(_this, 1, columnMetaData.encoding_stats);
     }
 }
@@ -244,10 +251,10 @@ writeSortingColumns(MetaDataWriter *_this, unsigned short num_sorting_columns, S
     }
 }
 
-static void writeImmutableStrings(MetaDataWriter *_this, int32_t num_str, const immutable_string *strings) {
+static void writeImmutableStrings(MetaDataWriter *_this, int32_t num_str, const String *strings) {
     int i;
     for (i = 0; i < num_str; ++i) {
-        immutable_string str = strings[i];
+        String str = strings[i];
         write(_this, sizeof(unsigned short), &(str.length));
         write(_this, str.length * sizeof(char), str.str);
     }

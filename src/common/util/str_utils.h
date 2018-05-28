@@ -8,7 +8,7 @@
 #include <immintrin.h>
 #include "idx_types.h"
 
-bool str_equal(immutable_string this, immutable_string that);
+bool str_equal(String this, String that);
 
 //16 byte
 bool sse_eq(const char *this, const char *that);

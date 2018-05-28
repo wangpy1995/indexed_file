@@ -7,6 +7,6 @@
 
 #include "idx_types.h"
 
-static const immutable_string MAGIC = {.length = 4, .str = "IDX1"};
+static const String MAGIC = {.length = 4, .str = "IDX1"};
 
 #endif //INDEXED_FILE_SCHEMA_H

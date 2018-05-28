@@ -7,7 +7,7 @@
 #define AVX2_TRUE 0xffffffffffffffff
 #endif
 
-bool str_equal(const immutable_string this, const immutable_string that) {
+bool str_equal(const String this, const String that) {
     size_t this_len = this.length;
     size_t that_len = that.length;
     if (this_len == that_len) {

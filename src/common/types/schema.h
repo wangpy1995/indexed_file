@@ -6,7 +6,7 @@
 #define INDEXED_FILE_SCHEMA_H
 
 #include "idx_types.h"
-static const immutable_string MAGIC = {.length = 4, .str = "IDX1"};
+static const String MAGIC = {.length = 4, .str = "IDX1"};
 
 struct StringType {
 };
@@ -74,7 +74,7 @@ struct LogicalType {
 };
 
 struct SchemaElement {
-    immutable_string name;
+    String name;
     Type type;
     int32_t type_length;
     FieldRepetitionType repetition_type;
@@ -84,6 +84,6 @@ struct SchemaElement {
     int32_t precision;
     int32_t field_id;
     LogicalType logicalType;
-};
+}__attribute__ ((packed));
 
 #endif //INDEXED_FILE_SCHEMA_H

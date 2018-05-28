@@ -8,7 +8,7 @@
 
 static FileMetaData *getFileMeta(FileMetaBuffer *_this);
 
-static void readImmutableStrings(FileMetaBuffer *_this, int32_t num_str, immutable_string *str);
+static void readImmutableStrings(FileMetaBuffer *_this, int32_t num_str, String *str);
 
 static void readSchemas(FileMetaBuffer *_this, unsigned short num_schemas, SchemaElement *schemas);
 
@@ -61,35 +61,35 @@ static FileMetaData *getFileMeta(FileMetaBuffer *_this) {
         metaData->version = *getAs(_this, 1, int32_t);
 
         //schemas
-        metaData->num_schemas = *getAs(_this, 1, unsigned short);
-        if (metaData->num_schemas > 0) {
-            metaData->schema = malloc(metaData->num_schemas * sizeof(SchemaElement));
-            readSchemas(_this, metaData->num_schemas, metaData->schema);
+        metaData->schema_len = *getAs(_this, 1, unsigned short);
+        if (metaData->schema_len > 0) {
+            metaData->schema = malloc(metaData->schema_len * sizeof(SchemaElement));
+            readSchemas(_this, metaData->schema_len, metaData->schema);
         }
         //numRows int64
         metaData->num_rows = *getAs(_this, 1, int64_t);
 
         //rowGroups
-        metaData->num_groups = *getAs(_this, 1, unsigned short);
-        if (metaData->num_groups > 0) {
-            metaData->row_groups = malloc(metaData->num_schemas * sizeof(RowGroup));
-            readRowGroups(_this, metaData->num_groups, metaData->row_groups);
+        metaData->group_len = *getAs(_this, 1, unsigned short);
+        if (metaData->group_len > 0) {
+            metaData->row_groups = malloc(metaData->schema_len * sizeof(RowGroup));
+            readRowGroups(_this, metaData->group_len, metaData->row_groups);
         }
 
         //kv
-        metaData->num_kvs = *getAs(_this, 1, int32_t);
-        if (metaData->num_kvs > 0) {
-            metaData->key_value_metadata = malloc(metaData->num_kvs * sizeof(KeyValue));
-            readKeyValues(_this, metaData->num_kvs, metaData->key_value_metadata);
+        metaData->kv_len = *getAs(_this, 1, int32_t);
+        if (metaData->kv_len > 0) {
+            metaData->key_value_metadata = malloc(metaData->kv_len * sizeof(KeyValue));
+            readKeyValues(_this, metaData->kv_len, metaData->key_value_metadata);
         }
         //createBy
         readImmutableStrings(_this, 1, &(metaData->created_by));
 
         //columnOrders
-        metaData->num_column_orders = *getAs(_this, 1, unsigned char);
-        if (metaData->num_column_orders > 0) {
-            metaData->column_orders = malloc(metaData->num_column_orders * sizeof(ColumnOrder));
-            metaData->column_orders = getAs(_this, metaData->num_column_orders, ColumnOrder);
+        metaData->order_len = *getAs(_this, 1, unsigned char);
+        if (metaData->order_len > 0) {
+            metaData->column_orders = malloc(metaData->order_len * sizeof(ColumnOrder));
+            metaData->column_orders = getAs(_this, metaData->order_len, ColumnOrder);
         }
         return metaData;
     }
@@ -169,17 +169,17 @@ static void readRowGroups(FileMetaBuffer *_this, unsigned short num_groups, RowG
     if (rowGroups) {
         int i;
         for (i = 0; i < num_groups; ++i) {
-            rowGroups[i].num_columns = *getAs(_this, 1, unsigned short);
-            if (rowGroups[i].num_columns > 0) {
-                rowGroups[i].columns = malloc(rowGroups[i].num_columns * sizeof(ColumnChunk));
-                readColumnChunks(_this, rowGroups[i].num_columns, rowGroups[i].columns);
+            rowGroups[i].chunk_len = *getAs(_this, 1, unsigned short);
+            if (rowGroups[i].chunk_len > 0) {
+                rowGroups[i].columns = malloc(rowGroups[i].chunk_len * sizeof(ColumnChunk));
+                readColumnChunks(_this, rowGroups[i].chunk_len, rowGroups[i].columns);
             }
             rowGroups[i].total_byte_size = *getAs(_this, 1, int64_t);
             rowGroups[i].num_rows = *getAs(_this, 1, int64_t);
-            rowGroups[i].num_sorting_columns = *getAs(_this, 1, unsigned short);
+            rowGroups[i].sorting_columns_len = *getAs(_this, 1, unsigned short);
             if (rowGroups[i].sorting_columns > 0) {
-                rowGroups[i].sorting_columns = malloc(rowGroups[i].num_sorting_columns * sizeof(SortingColumn));
-                readSortingColumns(_this, rowGroups[i].num_sorting_columns, rowGroups[i].sorting_columns);
+                rowGroups[i].sorting_columns = malloc(rowGroups[i].sorting_columns_len * sizeof(SortingColumn));
+                readSortingColumns(_this, rowGroups[i].sorting_columns_len, rowGroups[i].sorting_columns);
             }
         }
     }
@@ -206,26 +206,26 @@ static void readColumnMetaDatas(FileMetaBuffer *_this, unsigned short num_metas,
         for (i = 0; i < num_metas; ++i) {
             columnMetaDatas[i].type = *getAs(_this, 1, Type);
 
-            columnMetaDatas[i].num_encodings = *getAs(_this, 1, unsigned short);
-            if (columnMetaDatas[i].num_encodings > 0) {
-                columnMetaDatas[i].encodings = malloc(columnMetaDatas[i].num_encodings * sizeof(Encoding));
-                columnMetaDatas[i].encodings = getAs(_this, columnMetaDatas[i].num_encodings, Encoding);
+            columnMetaDatas[i].encoding_len = *getAs(_this, 1, unsigned short);
+            if (columnMetaDatas[i].encoding_len > 0) {
+                columnMetaDatas[i].encodings = malloc(columnMetaDatas[i].encoding_len * sizeof(Encoding));
+                columnMetaDatas[i].encodings = getAs(_this, columnMetaDatas[i].encoding_len, Encoding);
             }
 
-            columnMetaDatas[i].num_paths = *getAs(_this, 1, unsigned short);
-            if (columnMetaDatas[i].num_paths > 0) {
-                columnMetaDatas[i].path_in_schema = malloc(columnMetaDatas[i].num_paths * sizeof(immutable_string));
-                readImmutableStrings(_this, columnMetaDatas[i].num_paths, columnMetaDatas[i].path_in_schema);
+            columnMetaDatas[i].path_len = *getAs(_this, 1, unsigned short);
+            if (columnMetaDatas[i].path_len > 0) {
+                columnMetaDatas[i].path_in_schema = malloc(columnMetaDatas[i].path_len * sizeof(String));
+                readImmutableStrings(_this, columnMetaDatas[i].path_len, columnMetaDatas[i].path_in_schema);
             }
             columnMetaDatas[i].codec = *getAs(_this, 1, CompressionCodec);
             columnMetaDatas[i].num_values = *getAs(_this, 1, int64_t);
             columnMetaDatas[i].total_uncompressed_size = *getAs(_this, 1, int64_t);
             columnMetaDatas[i].total_compressed_size = *getAs(_this, 1, int64_t);
 
-            columnMetaDatas[i].num_kvs = *getAs(_this, 1, int32_t);
-            if (columnMetaDatas[i].num_kvs > 0) {
-                columnMetaDatas[i].key_value_metadata = malloc(columnMetaDatas[i].num_kvs * sizeof(KeyValue));
-                readKeyValues(_this, columnMetaDatas[i].num_kvs, columnMetaDatas[i].key_value_metadata);
+            columnMetaDatas[i].kv_len = *getAs(_this, 1, int32_t);
+            if (columnMetaDatas[i].kv_len > 0) {
+                columnMetaDatas[i].key_value_metadata = malloc(columnMetaDatas[i].kv_len * sizeof(KeyValue));
+                readKeyValues(_this, columnMetaDatas[i].kv_len, columnMetaDatas[i].key_value_metadata);
             }
 
             columnMetaDatas[i].data_page_offset = *getAs(_this, 1, int64_t);
@@ -234,10 +234,10 @@ static void readColumnMetaDatas(FileMetaBuffer *_this, unsigned short num_metas,
 
             readStatistics(_this, 1, &(columnMetaDatas[i].statistics));
 
-            columnMetaDatas[i].num_stats = *getAs(_this, 1, unsigned short);
-            if (columnMetaDatas[i].num_stats > 0) {
-                columnMetaDatas[i].encoding_stats = malloc(columnMetaDatas[i].num_stats * sizeof(PageEncodingStats));
-                readPageEncodingStats(_this, columnMetaDatas[i].num_stats, columnMetaDatas[i].encoding_stats);
+            columnMetaDatas[i].stat_len = *getAs(_this, 1, unsigned short);
+            if (columnMetaDatas[i].stat_len > 0) {
+                columnMetaDatas[i].encoding_stats = malloc(columnMetaDatas[i].stat_len * sizeof(PageEncodingStats));
+                readPageEncodingStats(_this, columnMetaDatas[i].stat_len, columnMetaDatas[i].encoding_stats);
             }
         }
     }
@@ -290,7 +290,7 @@ readSortingColumns(FileMetaBuffer *_this, unsigned short num_sorting_columns, So
     }
 }
 
-static void readImmutableStrings(FileMetaBuffer *_this, int32_t num_str, immutable_string *str) {
+static void readImmutableStrings(FileMetaBuffer *_this, int32_t num_str, String *str) {
     if (str && num_str > 0) {
         int i;
         for (i = 0; i < num_str; ++i) {

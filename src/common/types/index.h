@@ -17,8 +17,8 @@ struct OffsetIndex {
 };
 struct ColumnIndex {
     bool *null_pages;
-    immutable_string *min_values;
-    immutable_string *max_values;
+    String *min_values;
+    String *max_values;
     BoundaryOrder boundary_order;
     int64_t *null_counts;
 };

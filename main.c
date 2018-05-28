@@ -32,12 +32,12 @@ void testMetaDataWriter(void) {
     ColumnOrder order = {};
     FileMetaData meta = {
             .version=001,
-            .num_schemas=1,
+            .schema_len=1,
             .num_rows=0,
-            .num_groups=0,
-            .num_kvs=2,
+            .group_len=0,
+            .kv_len=2,
             .created_by={.str="wpy", .length=3},
-            .num_column_orders=1,
+            .order_len=1,
             .column_orders=&order
     };
 
@@ -47,7 +47,7 @@ void testMetaDataWriter(void) {
     };
 
     //schema
-    meta.schema = malloc(meta.num_schemas * sizeof(SchemaElement));
+    meta.schema = malloc(meta.schema_len * sizeof(SchemaElement));
     meta.schema->type = BYTE_ARRAY;
     meta.schema->type_length = 4;
     meta.schema->repetition_type = REPEATED;
@@ -63,7 +63,7 @@ void testMetaDataWriter(void) {
     meta.schema->logicalType = logic;
 
 
-    meta.key_value_metadata = malloc(meta.num_kvs * sizeof(KeyValue));
+    meta.key_value_metadata = malloc(meta.kv_len * sizeof(KeyValue));
 
     meta.key_value_metadata[0].key.length = 2;
     meta.key_value_metadata[0].key.str = "k1";
@@ -123,12 +123,12 @@ void testReadAll(void) {
 
 //            FileMetaData metaData = {
 //                    .version=*((int *) buffer),
-//                    .num_schemas =*((unsigned short *) (buffer + 2))
+//                    .schema_len =*((unsigned short *) (buffer + 2))
 //            };
             printf("meta: %p\n", fbuffer->fileMeta);
             fbuffer->freeFileMeta(fbuffer);
 
-            printf("%s\n",buffer);
+            printf("%s\n", buffer);
         } else {
             printf("expected MAGIC string: IDX1, actual %s.\n", magic);
         }
@@ -136,10 +136,10 @@ void testReadAll(void) {
 }
 
 int main(void) {
-//    testMetaDataWriter();
+    testMetaDataWriter();
 //    testIO();
 //    testMetaDataReader();
-    testReadAll();
-//    printf("%ld\n", sizeof(struct Test));
+//    testReadAll();
+    printf("%ld\n", sizeof(String));
     return 0;
 }

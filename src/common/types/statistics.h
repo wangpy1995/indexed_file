@@ -7,14 +7,14 @@
 
 #include "idx_types.h"
 
-//Statistics
+//Statistics  列數據的一些幾處屬性
 struct Statistics {
-    immutable_string max;
-    immutable_string min;
+    String max;
+    String min;
     int64_t null_count;
     int64_t distinct_count;
-    immutable_string max_value;
-    immutable_string min_value;
+    String max_value;
+    String min_value;
 };
 
 #endif //INDEXED_FILE_STATISTICS_H
