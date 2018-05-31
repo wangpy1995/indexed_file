@@ -27,9 +27,10 @@ void testIO() {
 
 void testMetaDataWriter(void) {
     FILE *fp = fopen("../resources/test_idx_file", "rb+");
+    TypeDefinedOrder o = {};
     MetaDataWriter *idxWriter = createMetaDataWriter(fp);
     size_t startPos = idxWriter->pos;
-    ColumnOrder order = {};
+    ColumnOrder order = {.TYPE_ORDER=o};
     FileMetaData meta = {
             .version=001,
             .schema_len=1,
@@ -91,13 +92,26 @@ void testMetaDataWriter(void) {
 
 void testMetaDataReader(void) {
     FILE *fp = fopen("../resources/test_idx_file", "rb+");
-    MetaDataReader *idxReader = createMetaDataReader(fp);
+    fseek(fp, 0, SEEK_END);
+    size_t fileLength = ftell(fp);
+    size_t start_pos = fileLength - MAGIC.length;
+    fseek(fp, start_pos, SEEK_SET);
+    char magic[MAGIC.length];
+    fread(magic, MAGIC.length, 1, fp);
+    if (*((int *) MAGIC.str) == (*((int *) magic))) {
+        int footIndexLength;
+        start_pos -= sizeof(int);
+        fseek(fp, start_pos, SEEK_SET);
+        fread(&footIndexLength, sizeof(int), 1, fp);
+        start_pos -= footIndexLength;
+        MetaDataReader *idxReader = createMetaDataReader(fp, start_pos, footIndexLength);
 
-    FileMetaData *meta = malloc(sizeof(FileMetaData));
-    idxReader->readFileMeta(idxReader, meta);
-    printf("meta: %p\n", meta);
-    freeFileMetaData(&meta);
-    idxReader->close(idxReader);
+        FileMetaData *meta = malloc(sizeof(FileMetaData));
+        idxReader->readFileMeta(idxReader, meta, SKIP_ROW_GROUPS|SKIP_KEY_VALUE);
+        printf("meta: %p\n", meta);
+        freeFileMetaData(&meta);
+        idxReader->close(idxReader);
+    }
 }
 
 void testReadAll(void) {
@@ -113,13 +127,14 @@ void testReadAll(void) {
             int footIndexLength;
             fseek(fp, fileLength - MAGIC.length - sizeof(int), SEEK_SET);
             fread(&footIndexLength, sizeof(int), 1, fp);
+            fseek(fp, fileLength - MAGIC.length - sizeof(int) - 3 * sizeof(int), SEEK_SET);
             fclose(fp);
             int fd = open("../resources/test_idx_file", O_RDONLY);
             const char *buffer = mmap(NULL, footIndexLength, PROT_READ, MAP_SHARED, fd,
                                       fileLength - MAGIC.length - sizeof(int) - footIndexLength);
             close(fd);
 
-            FileMetaBuffer *fbuffer = createFileMetaBuffer(buffer);
+            FileMetaBuffer *fbuffer = createFileMetaBuffer(buffer, footIndexLength,SKIP_SCHEMAS);
 
 //            FileMetaData metaData = {
 //                    .version=*((int *) buffer),
@@ -136,9 +151,9 @@ void testReadAll(void) {
 }
 
 int main(void) {
-    testMetaDataWriter();
+//    testMetaDataWriter();
 //    testIO();
-//    testMetaDataReader();
+    testMetaDataReader();
 //    testReadAll();
     printf("%ld\n", sizeof(String));
     return 0;

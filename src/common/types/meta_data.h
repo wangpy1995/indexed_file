@@ -125,10 +125,6 @@ static void freeFileMetaData(FileMetaData **metaPointer) {
         const FileMetaData *meta = *metaPointer;
         int i;
         if (meta->schema) {
-            if (meta->schema->name.str) {
-                free(meta->schema->name.str);
-                meta->schema->name.str = NULL;
-            }
             free(meta->schema);
         }
         if (meta->row_groups) {
@@ -148,16 +144,6 @@ static void freeFileMetaData(FileMetaData **metaPointer) {
             free(meta->column_orders);
         }
         if (meta->key_value_metadata) {
-            for (i = 0; i < meta->kv_len; ++i) {
-                if (meta->key_value_metadata->key.str) {
-                    free(meta->key_value_metadata->key.str);
-                    meta->key_value_metadata->key.str = NULL;
-                }
-                if (meta->key_value_metadata->value.str) {
-                    free(meta->key_value_metadata->value.str);
-                    meta->key_value_metadata->value.str = NULL;
-                }
-            }
             free(meta->key_value_metadata);
         }
 

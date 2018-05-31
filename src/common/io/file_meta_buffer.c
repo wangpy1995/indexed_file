@@ -6,7 +6,7 @@
 #include "file_meta_buffer.h"
 #include "common/types/meta_data.h"
 
-static FileMetaData *getFileMeta(FileMetaBuffer *_this);
+static FileMetaData *getFileMeta(FileMetaBuffer *_this,int32_t mask);
 
 static void readImmutableStrings(FileMetaBuffer *_this, int32_t num_str, String *str);
 
@@ -29,12 +29,13 @@ static void readRowGroups(FileMetaBuffer *_this, unsigned short num_groups, RowG
 
 static void freeFileMeta(FileMetaBuffer *_this);
 
-FileMetaBuffer *createFileMetaBuffer(const char *buff) {
+FileMetaBuffer *createFileMetaBuffer(const char *buff, int32_t index_len, int32_t mask) {
     FileMetaBuffer *buffer = malloc(sizeof(FileMetaBuffer));
     buffer->pos = 0;
     buffer->buff = buff;
+    buffer->len = (int32_t *) (buff + index_len - 3 * sizeof(int32_t));
     buffer->freeFileMeta = freeFileMeta;
-    buffer->fileMeta = getFileMeta(buffer);
+    buffer->fileMeta = getFileMeta(buffer,mask);
     return buffer;
 }
 
@@ -54,33 +55,45 @@ static void *get(FileMetaBuffer *_this, size_t size) {
 
 #define getAs(buffer, num_types, type) ((type *) (get((buffer), (num_types) * sizeof(type))))
 
-static FileMetaData *getFileMeta(FileMetaBuffer *_this) {
+static FileMetaData *getFileMeta(FileMetaBuffer *_this,int32_t mask) {
     if (_this) {
         FileMetaData *metaData = malloc(sizeof(FileMetaData));
         //version  int32
         metaData->version = *getAs(_this, 1, int32_t);
 
         //schemas
-        metaData->schema_len = *getAs(_this, 1, unsigned short);
-        if (metaData->schema_len > 0) {
-            metaData->schema = malloc(metaData->schema_len * sizeof(SchemaElement));
-            readSchemas(_this, metaData->schema_len, metaData->schema);
+        if ((mask & SKIP_SCHEMAS) != 0) {
+            _this->pos += _this->len[0];
+        } else {
+            metaData->schema_len = *getAs(_this, 1, unsigned short);
+            if (metaData->schema_len > 0) {
+                metaData->schema = malloc(metaData->schema_len * sizeof(SchemaElement));
+                readSchemas(_this, metaData->schema_len, metaData->schema);
+            }
         }
         //numRows int64
         metaData->num_rows = *getAs(_this, 1, int64_t);
 
         //rowGroups
-        metaData->group_len = *getAs(_this, 1, unsigned short);
-        if (metaData->group_len > 0) {
-            metaData->row_groups = malloc(metaData->schema_len * sizeof(RowGroup));
-            readRowGroups(_this, metaData->group_len, metaData->row_groups);
+        if ((mask & SKIP_ROW_GROUPS) != 0) {
+            _this->pos += _this->len[1];
+        } else {
+            metaData->group_len = *getAs(_this, 1, unsigned short);
+            if (metaData->group_len > 0) {
+                metaData->row_groups = malloc(metaData->schema_len * sizeof(RowGroup));
+                readRowGroups(_this, metaData->group_len, metaData->row_groups);
+            }
         }
 
         //kv
-        metaData->kv_len = *getAs(_this, 1, int32_t);
-        if (metaData->kv_len > 0) {
-            metaData->key_value_metadata = malloc(metaData->kv_len * sizeof(KeyValue));
-            readKeyValues(_this, metaData->kv_len, metaData->key_value_metadata);
+        if ((mask & SKIP_KEY_VALUE) != 0) {
+            _this->pos += _this->len[2];
+        } else {
+            metaData->kv_len = *getAs(_this, 1, int32_t);
+            if (metaData->kv_len > 0) {
+                metaData->key_value_metadata = malloc(metaData->kv_len * sizeof(KeyValue));
+                readKeyValues(_this, metaData->kv_len, metaData->key_value_metadata);
+            }
         }
         //createBy
         readImmutableStrings(_this, 1, &(metaData->created_by));

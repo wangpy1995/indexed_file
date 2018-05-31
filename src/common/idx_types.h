@@ -5,6 +5,12 @@
 #ifndef INDEXED_FILE_IDX_TYPES_H
 #define INDEXED_FILE_IDX_TYPES_H
 
+#define SKIP_NOTHING 0x00000000B
+#define SKIP_SCHEMAS (0x00000001)
+#define SKIP_ROW_GROUPS (0x00000002)
+#define  SKIP_KEY_VALUE (0x00000004)
+
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>

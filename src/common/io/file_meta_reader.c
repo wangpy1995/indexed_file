@@ -34,13 +34,15 @@ static void readPageEncodingStats(MetaDataReader *_this, unsigned short num_stat
 static void
 readSortingColumns(MetaDataReader *_this, unsigned short num_sorting_columns, SortingColumn *sortingColumns);
 
-void readFileMeta(MetaDataReader *_this, FileMetaData *metaData);
+void readFileMeta(MetaDataReader *_this, FileMetaData *metaData, int32_t mask);
 
-MetaDataReader *createMetaDataReader(FILE *fp) {
+MetaDataReader *createMetaDataReader(FILE *fp, size_t pos, int index_len) {
     if (fp) {
         MetaDataReader *reader = malloc(sizeof(MetaDataReader));
         reader->fp = fp;
-        reader->pos = 0;
+        reader->pos = pos;
+        fseek(fp, pos + index_len - 3 * sizeof(int), SEEK_SET);
+        fread(reader->len, 3 * sizeof(int), 1, fp);
         reader->readFileMeta = readFileMeta;
         reader->read = read;
         reader->seekTo = seekTo;
@@ -79,32 +81,44 @@ static void close(struct MetaDataReader *_this) {
     }
 }
 
-void readFileMeta(MetaDataReader *_this, FileMetaData *metaData) {
+void readFileMeta(MetaDataReader *_this, FileMetaData *metaData, int32_t mask) {
     if (_this && metaData) {
         //version  int32
         read(_this, sizeof(int32_t), &(metaData->version));
 
         //schemas
-        read(_this, sizeof(unsigned short), &(metaData->schema_len));
-        if (metaData->schema_len > 0) {
-            metaData->schema = malloc(metaData->schema_len * sizeof(SchemaElement));
-            readSchemas(_this, metaData->schema_len, metaData->schema);
+        if ((mask & SKIP_SCHEMAS) != 0) {
+            _this->seekTo(_this, _this->pos + _this->len[0]);
+        } else {
+            read(_this, sizeof(unsigned short), &(metaData->schema_len));
+            if (metaData->schema_len > 0) {
+                metaData->schema = malloc(metaData->schema_len * sizeof(SchemaElement));
+                readSchemas(_this, metaData->schema_len, metaData->schema);
+            }
         }
         //numRows int64
         read(_this, sizeof(int64_t), &(metaData->num_rows));
 
         //rowGroups
-        read(_this, sizeof(unsigned short), &(metaData->group_len));
-        if (metaData->group_len > 0) {
-            metaData->row_groups = malloc(metaData->schema_len * sizeof(RowGroup));
-            readRowGroups(_this, metaData->group_len, metaData->row_groups);
+        if ((mask & SKIP_ROW_GROUPS) != 0) {
+            _this->seekTo(_this, _this->pos + _this->len[0]);
+        } else {
+            read(_this, sizeof(unsigned short), &(metaData->group_len));
+            if (metaData->group_len > 0) {
+                metaData->row_groups = malloc(metaData->schema_len * sizeof(RowGroup));
+                readRowGroups(_this, metaData->group_len, metaData->row_groups);
+            }
         }
 
         //kv
-        read(_this, sizeof(int32_t), &(metaData->kv_len));
-        if (metaData->kv_len > 0) {
-            metaData->key_value_metadata = malloc(metaData->kv_len * sizeof(KeyValue));
-            readKeyValues(_this, metaData->kv_len, metaData->key_value_metadata);
+        if ((mask & SKIP_KEY_VALUE) != 0) {
+            _this->seekTo(_this, _this->pos + _this->len[0]);
+        } else {
+            read(_this, sizeof(int32_t), &(metaData->kv_len));
+            if (metaData->kv_len > 0) {
+                metaData->key_value_metadata = malloc(metaData->kv_len * sizeof(KeyValue));
+                readKeyValues(_this, metaData->kv_len, metaData->key_value_metadata);
+            }
         }
         //createBy
         readImmutableStrings(_this, 1, &(metaData->created_by));

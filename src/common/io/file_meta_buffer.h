@@ -17,9 +17,10 @@ typedef struct FileMetaBuffer {
     void (*seekTo)(struct FileMetaBuffer *buff, size_t offset);
 
     size_t pos;
+    int32_t *len;
     const char *buff;
 } FileMetaBuffer;
 
-FileMetaBuffer *createFileMetaBuffer(const char *buffer);
+FileMetaBuffer *createFileMetaBuffer(const char *buffer,int32_t index_len,int32_t mask);
 
 #endif //INDEXED_FILE_FILE_META_BUFFER_H

@@ -87,21 +87,28 @@ static void writeFileMeta(MetaDataWriter *_this, const FileMetaData metaData) {
         /*version  int32*/
         write(_this, sizeof(int32_t), &(metaData.version));
 
+        int32_t len[3];
         /*schema_len  int16  节省空间以及強制轉換  需要单字節對齊*/
+        size_t start = _this->pos;
         write(_this, sizeof(unsigned short), &(metaData.schema_len));
-        write(_this, metaData.schema_len, metaData.schema);
-//        writeSchemas(_this, metaData.schema_len, metaData.schema);
+//        write(_this, metaData.schema_len, metaData.schema);
+        writeSchemas(_this, metaData.schema_len, metaData.schema);
+        len[0] = _this->pos - start;
 
         /*numRows int64*/
         write(_this, sizeof(int64_t), &(metaData.num_rows));
         /*rowGroups*/
+        start = _this->pos;
         write(_this, sizeof(unsigned short), &(metaData.group_len));
         writeRowGroups(_this, metaData.group_len, metaData.row_groups);
+        len[1] = _this->pos - start;
 
         /*kv*/
+        start = _this->pos;
         write(_this, sizeof(int32_t), &(metaData.kv_len));
-        write(_this, (size_t) metaData.kv_len, metaData.key_value_metadata);
-//        writeKeyValues(_this, metaData.kv_len, metaData.key_value_metadata);
+//        write(_this, (size_t) metaData.kv_len, metaData.key_value_metadata);
+        writeKeyValues(_this, metaData.kv_len, metaData.key_value_metadata);
+        len[2] = _this->pos - start;
 
         /*createBy*/
         writeImmutableStrings(_this, 1, &(metaData.created_by));
@@ -109,6 +116,9 @@ static void writeFileMeta(MetaDataWriter *_this, const FileMetaData metaData) {
         /*columnOrders*/
         write(_this, sizeof(unsigned char), &(metaData.order_len));
         write(_this, metaData.order_len, metaData.column_orders);
+
+        //add schema_size | group_size | kv_size  to tail
+        write(_this, sizeof(int32_t)*3, len);
     }
 }
 
