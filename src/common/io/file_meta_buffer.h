@@ -21,6 +21,6 @@ typedef struct FileMetaBuffer {
     const char *buff;
 } FileMetaBuffer;
 
-FileMetaBuffer *createFileMetaBuffer(const char *buffer,int32_t index_len,int32_t mask);
+FileMetaBuffer *createFileMetaBuffer(const char *buffer,int32_t index_len,int8_t mask);
 
 #endif //INDEXED_FILE_FILE_META_BUFFER_H

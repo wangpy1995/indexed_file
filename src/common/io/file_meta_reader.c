@@ -34,7 +34,7 @@ static void readPageEncodingStats(MetaDataReader *_this, unsigned short num_stat
 static void
 readSortingColumns(MetaDataReader *_this, unsigned short num_sorting_columns, SortingColumn *sortingColumns);
 
-void readFileMeta(MetaDataReader *_this, FileMetaData *metaData, int32_t mask);
+void readFileMeta(MetaDataReader *_this, FileMetaData *metaData, int8_t mask);
 
 MetaDataReader *createMetaDataReader(FILE *fp, size_t pos, int index_len) {
     if (fp) {
@@ -81,7 +81,7 @@ static void close(struct MetaDataReader *_this) {
     }
 }
 
-void readFileMeta(MetaDataReader *_this, FileMetaData *metaData, int32_t mask) {
+void readFileMeta(MetaDataReader *_this, FileMetaData *metaData, int8_t mask) {
     if (_this && metaData) {
         //version  int32
         read(_this, sizeof(int32_t), &(metaData->version));

@@ -6,7 +6,7 @@
 #include "file_meta_buffer.h"
 #include "common/types/meta_data.h"
 
-static FileMetaData *getFileMeta(FileMetaBuffer *_this,int32_t mask);
+static FileMetaData *getFileMeta(FileMetaBuffer *_this,int8_t mask);
 
 static void readImmutableStrings(FileMetaBuffer *_this, int32_t num_str, String *str);
 
@@ -29,7 +29,7 @@ static void readRowGroups(FileMetaBuffer *_this, unsigned short num_groups, RowG
 
 static void freeFileMeta(FileMetaBuffer *_this);
 
-FileMetaBuffer *createFileMetaBuffer(const char *buff, int32_t index_len, int32_t mask) {
+FileMetaBuffer *createFileMetaBuffer(const char *buff, int32_t index_len, int8_t mask) {
     FileMetaBuffer *buffer = malloc(sizeof(FileMetaBuffer));
     buffer->pos = 0;
     buffer->buff = buff;
@@ -55,7 +55,7 @@ static void *get(FileMetaBuffer *_this, size_t size) {
 
 #define getAs(buffer, num_types, type) ((type *) (get((buffer), (num_types) * sizeof(type))))
 
-static FileMetaData *getFileMeta(FileMetaBuffer *_this,int32_t mask) {
+static FileMetaData *getFileMeta(FileMetaBuffer *_this,int8_t mask) {
     if (_this) {
         FileMetaData *metaData = malloc(sizeof(FileMetaData));
         //version  int32

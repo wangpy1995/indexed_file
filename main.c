@@ -107,7 +107,7 @@ void testMetaDataReader(void) {
         MetaDataReader *idxReader = createMetaDataReader(fp, start_pos, footIndexLength);
 
         FileMetaData *meta = malloc(sizeof(FileMetaData));
-        idxReader->readFileMeta(idxReader, meta, SKIP_ROW_GROUPS|SKIP_KEY_VALUE);
+        idxReader->readFileMeta(idxReader, meta, SKIP_SCHEMAS);
         printf("meta: %p\n", meta);
         freeFileMetaData(&meta);
         idxReader->close(idxReader);

@@ -18,7 +18,7 @@ typedef struct MetaDataReader {
     int32_t len[3];
 
     //mask=0,1,2,3,4,5,6,7
-    void (*readFileMeta)(struct MetaDataReader *_this, FileMetaData *metaData, int32_t mask);
+    void (*readFileMeta)(struct MetaDataReader *_this, FileMetaData *metaData, int8_t mask);
 
     void (*read)(struct MetaDataReader *_this, size_t size, void *res);
 
