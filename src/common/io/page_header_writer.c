@@ -28,22 +28,7 @@ static void write(PageHeaderWriter *_this, size_t size, void *data) {
 }
 
 static void writePageHeader(PageHeaderWriter *_this, PageHeader *pageHeader) {
-    if (_this) {
-        write(_this, sizeof(PageType), pageHeader);
-        write(_this, sizeof(int32_t), &(pageHeader->uncompressed_page_size));
-        write(_this, sizeof(int32_t), &(pageHeader->compressed_page_size));
-        write(_this, sizeof(int32_t), &(pageHeader->crc));
 
-        // write DataPageHeader
-        if(pageHeader->type==DATA_PAGE) {
-            write(_this, sizeof(int32_t), &(pageHeader->data_page_header.num_values));
-            write(_this, sizeof(Encoding),&(pageHeader->data_page_header.encoding));
-            write(_this, sizeof(Encoding),&(pageHeader->data_page_header.definition_level_encoding));
-            write(_this, sizeof(Encoding),&(pageHeader->data_page_header.repetition_level_encoding));
-            writeStatistics()
-        }
-
-    }
 }
 
 static void writeDataPageHeader()

@@ -9,6 +9,9 @@
 
 #include <common/idx_types.h>
 
+/**
+ * @param buff FileMeta的所有内容  需要包含MetaData的全部信息
+ */
 typedef struct FileMetaBuffer {
     FileMetaData *fileMeta;
 
