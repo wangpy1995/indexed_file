@@ -252,7 +252,6 @@ static void writeDataPageV2(MetaDataWriter *_this, const DataPageHeaderV2 header
 }
 
 static void writeIndexPage(MetaDataWriter *_this, const IndexPageHeader pageHeader) {
-
 }
 
 static void writeDictionaryPage(MetaDataWriter *_this, const DictionaryPageHeader header) {
@@ -295,6 +294,7 @@ MetaDataWriter *createMetaDataWriter(FILE *fp) {
         writer->fp = fp;
         writer->pos = 0;
         writer->writeFileMeta = writeFileMeta;
+        writer->writePageHeader = writePageHeader;
         writer->write = write;
         writer->seekTo = seekTo;
         writer->flush = flush;
