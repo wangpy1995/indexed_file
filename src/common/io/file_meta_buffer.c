@@ -8,7 +8,7 @@
 
 #define getAs(buffer, num_types, type) ((type *) (get((buffer), (num_types) * sizeof(type))))
 
-static void *get(FileMetaBuffer *_this, size_t size) {
+static void __attribute__((nonnull(1))) *get(FileMetaBuffer *_this, size_t size) {
     if (_this && size > 0) {
         const char *data = _this->buff + _this->pos;
         _this->pos += size;

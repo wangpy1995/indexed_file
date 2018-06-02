@@ -9,27 +9,31 @@
 #include <stdbool.h>
 #include <common/types/page_header.h>
 
-static inline void write(MetaDataWriter *_this, size_t size, const void *data) {
-    if (_this && size > 0 && data) {
-        fseek(_this->fp, _this->pos, SEEK_SET);
-        fwrite(data, size, 1, _this->fp);
-        _this->pos += size;
-    }
+/**
+ *
+ * @param _this
+ * @param size  需要大于0
+ * @param data   不可为null
+ */
+static inline void __attribute__((nonnull(1, 3))) write(MetaDataWriter *_this, size_t size, const void *data) {
+    fseek(_this->fp, _this->pos, SEEK_SET);
+    fwrite(data, size, 1, _this->fp);
+    _this->pos += size;
 }
 
-static inline void seekTo(MetaDataWriter *_this, size_t pos) {
+static inline void __attribute__((nonnull(1))) seekTo(MetaDataWriter *_this, size_t pos) {
     if (_this) {
         _this->pos = pos;
     }
 }
 
-static inline void flush(MetaDataWriter *_this) {
+static inline void __attribute__((nonnull(1))) flush(MetaDataWriter *_this) {
     if (_this) {
         fflush(_this->fp);
     }
 }
 
-static inline void close(MetaDataWriter *_this) {
+static inline void __attribute__((nonnull(1))) close(MetaDataWriter *_this) {
     if (_this) {
         fclose(_this->fp);
         free(_this);
@@ -71,7 +75,7 @@ writePageEncodingStats(MetaDataWriter *_this, unsigned short num_stats, PageEnco
     }
 }
 
-static void writeStatistics(MetaDataWriter *_this, int32_t num_statistics, Statistics *statistics) {
+static void writeStatistics(MetaDataWriter *_this, int32_t num_statistics, const Statistics *statistics) {
     int i;
     for (i = 0; i < num_statistics; ++i) {
         Statistics s = statistics[i];
@@ -228,20 +232,58 @@ static void writeFileMeta(MetaDataWriter *_this, const FileMetaData metaData) {
     }
 }
 
-static void writePageHeader(MetaDataWriter *_this,const PageHeader pageHeader){
+static void writeDataPage(MetaDataWriter *_this, const DataPageHeader header) {
+    write(_this, sizeof(int32_t), &(header.num_values));
+    write(_this, sizeof(Encoding), &(header.encoding));
+    write(_this, sizeof(Encoding), &(header.definition_level_encoding));
+    write(_this, sizeof(Encoding), &(header.repetition_level_encoding));
+    writeStatistics(_this, 1, &(header.statistics));
+}
+
+static void writeDataPageV2(MetaDataWriter *_this, const DataPageHeaderV2 header) {
+    write(_this, sizeof(int32_t), &(header.num_values));
+    write(_this, sizeof(int32_t), &(header.num_nulls));
+    write(_this, sizeof(int32_t), &(header.num_rows));
+    write(_this, sizeof(Encoding), &(header.encoding));
+    write(_this, sizeof(int32_t), &(header.definition_levels_byte_length));
+    write(_this, sizeof(int32_t), &(header.repetition_levels_byte_length));
+    write(_this, sizeof(bool), &(header.is_compressed));
+    writeStatistics(_this, 1, &(header.statistics));
+}
+
+static void writeIndexPage(MetaDataWriter *_this, const IndexPageHeader pageHeader) {
+
+}
+
+static void writeDictionaryPage(MetaDataWriter *_this, const DictionaryPageHeader header) {
+    write(_this, sizeof(int32_t), &(header.num_values));
+    write(_this, sizeof(Encoding), &(header.encoding));
+    write(_this, sizeof(bool), &(header.is_sorted));
+}
+
+static void writePageHeader(MetaDataWriter *_this, const PageHeader pageHeader) {
     if (_this) {
         write(_this, sizeof(PageType), &(pageHeader.type));
         write(_this, sizeof(int32_t), &(pageHeader.uncompressed_page_size));
         write(_this, sizeof(int32_t), &(pageHeader.compressed_page_size));
         write(_this, sizeof(int32_t), &(pageHeader.crc));
 
-        // write DataPageHeader
-        if(pageHeader.type==DATA_PAGE) {
-            write(_this, sizeof(int32_t), &(pageHeader.data_page_header.num_values));
-            write(_this, sizeof(Encoding),&(pageHeader.data_page_header.encoding));
-            write(_this, sizeof(Encoding),&(pageHeader.data_page_header.definition_level_encoding));
-            write(_this, sizeof(Encoding),&(pageHeader.data_page_header.repetition_level_encoding));
-            writeStatistics(_this,1,&(pageHeader.data_page_header.statistics));
+        //page
+        switch (pageHeader.type) {
+            case DATA_PAGE:
+                writeDataPage(_this, pageHeader.data_page_header);
+                break;
+            case DATA_PAGE_V2:
+                writeDataPageV2(_this, pageHeader.data_page_header_v2);
+                break;
+            case INDEX_PAGE:
+                writeIndexPage(_this, pageHeader.index_page_header);
+                break;
+            case DICTIONARY_PAGE:
+                writeDictionaryPage(_this, pageHeader.dictionary_page_header);
+                break;
+            default:
+                break;
         }
 
     }

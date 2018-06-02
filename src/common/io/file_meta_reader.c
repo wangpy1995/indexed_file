@@ -7,32 +7,24 @@
 #include <common/types/schema.h>
 #include "file_meta_reader.h"
 
-inline static void read(struct MetaDataReader *_this, size_t size, void *res) {
-    if (_this && size > 0 && res) {
-        fseek(_this->fp, _this->pos, SEEK_SET);
-        fread(res, size, 1, _this->fp);
-        _this->pos += size;
-    }
+inline static void __attribute__((nonnull(1, 3))) read(struct MetaDataReader *_this, size_t size, void *res) {
+    fseek(_this->fp, _this->pos, SEEK_SET);
+    fread(res, size, 1, _this->fp);
+    _this->pos += size;
 }
 
-inline static void seekTo(struct MetaDataReader *_this, size_t pos) {
-    if (_this && pos > 0) {
-        _this->pos = pos;
-    }
+inline static void __attribute__((nonnull(1))) seekTo(struct MetaDataReader *_this, size_t pos) {
+    _this->pos = pos;
 }
 
-inline static void flush(MetaDataReader *_this) {
-    if (_this) {
-        fflush(_this->fp);
-    }
+inline static void __attribute__((nonnull(1))) flush(MetaDataReader *_this) {
+    fflush(_this->fp);
 }
 
-inline static void close(struct MetaDataReader *_this) {
-    if (_this) {
+inline static void __attribute__((nonnull(1))) close(struct MetaDataReader *_this) {
         fclose(_this->fp);
         free(_this);
         _this->fp = NULL;
-    }
 }
 
 static void readImmutableStrings(MetaDataReader *_this, int32_t num_str, String *str) {
