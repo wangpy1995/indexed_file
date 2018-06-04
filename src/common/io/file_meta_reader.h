@@ -19,6 +19,7 @@ typedef struct MetaDataReader {
 
     //mask=0,1,2,3,4,5,6,7
     void (*readFileMeta)(struct MetaDataReader *_this, FileMetaData *metaData, int8_t mask);
+    void (*readPageHeader)(struct MetaDataReader *_this, PageHeader *pageHeader,int64_t offset);
 
     void (*read)(struct MetaDataReader *_this, size_t size, void *res);
 

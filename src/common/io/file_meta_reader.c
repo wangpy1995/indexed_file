@@ -5,28 +5,38 @@
 #include <stdlib.h>
 #include <common/types/meta_data.h>
 #include <common/types/schema.h>
+#include <common/types/page_header.h>
 #include "file_meta_reader.h"
 
+
+//内部使用  不再对外开放
 inline static void __attribute__((nonnull(1, 3))) read(struct MetaDataReader *_this, size_t size, void *res) {
     fseek(_this->fp, _this->pos, SEEK_SET);
     fread(res, size, 1, _this->fp);
     _this->pos += size;
 }
 
+//内部使用  不再对外开放
 inline static void __attribute__((nonnull(1))) seekTo(struct MetaDataReader *_this, size_t pos) {
     _this->pos = pos;
 }
 
+//内部使用  不再对外开放
 inline static void __attribute__((nonnull(1))) flush(MetaDataReader *_this) {
     fflush(_this->fp);
 }
 
+//内部使用  不再对外开放
 inline static void __attribute__((nonnull(1))) close(struct MetaDataReader *_this) {
-        fclose(_this->fp);
-        free(_this);
-        _this->fp = NULL;
+    fclose(_this->fp);
+    free(_this);
+    _this->fp = NULL;
 }
 
+
+//////////////////////////////////
+////        read meta_data
+//////////////////////////////////
 static void readImmutableStrings(MetaDataReader *_this, int32_t num_str, String *str) {
     if (str && num_str > 0) {
         int i;
@@ -181,6 +191,12 @@ static void readSchemas(MetaDataReader *_this, unsigned short num_schemas, Schem
     }
 }
 
+/**
+ *
+ * @param _this
+ * @param metaData  结构体
+ * @param mask   掩码  是否过滤部分字段
+ */
 void readFileMeta(MetaDataReader *_this, FileMetaData *metaData, int8_t mask) {
     if (_this && metaData) {
         read(_this, sizeof(int32_t), &(metaData->version));//version  int32
@@ -231,6 +247,77 @@ void readFileMeta(MetaDataReader *_this, FileMetaData *metaData, int8_t mask) {
     }
 }
 
+//////////////////////////////////
+////        read page_header
+//////////////////////////////////
+
+static void readDataPage(MetaDataReader *_this, DataPageHeader *header) {
+    if (header) {
+        read(_this, sizeof(int32_t), &(header->num_values));
+        read(_this, sizeof(Encoding), &(header->encoding));
+        read(_this, sizeof(Encoding), &(header->definition_level_encoding));
+        read(_this, sizeof(Encoding), &(header->repetition_level_encoding));
+        readStatistics(_this, 1, &(header->statistics));
+    }
+}
+
+static void readDataPageV2(MetaDataReader *_this, DataPageHeaderV2 *header) {
+    read(_this, sizeof(int32_t), &(header->num_values));
+    read(_this, sizeof(int32_t), &(header->num_nulls));
+    read(_this, sizeof(int32_t), &(header->num_rows));
+    read(_this, sizeof(Encoding), &(header->encoding));
+    read(_this, sizeof(int32_t), &(header->definition_levels_byte_length));
+    read(_this, sizeof(int32_t), &(header->repetition_levels_byte_length));
+    read(_this, sizeof(bool), &(header->is_compressed));
+    readStatistics(_this, 1, &(header->statistics));
+}
+
+static void readIndexPage(MetaDataReader *_this, IndexPageHeader *header) {
+}
+
+static void readDictionaryPage(MetaDataReader *_this, DictionaryPageHeader *header) {
+    read(_this, sizeof(int32_t), &(header->num_values));
+    read(_this, sizeof(Encoding), &(header->encoding));
+    read(_this, sizeof(bool), &(header->is_sorted));
+}
+
+/**
+ *
+ * @param _this
+ * @param pageHeader  结构体
+ * @param offset  page偏移量
+ */
+static void readPageHeader(MetaDataReader *_this, PageHeader *pageHeader, int64_t offset) {
+    if (_this && pageHeader) {
+        size_t cur_pos = _this->pos;
+        //移动至offset处
+        _this->pos = offset;
+        read(_this, sizeof(PageType), &(pageHeader->type));
+        read(_this, sizeof(int32_t), &(pageHeader->uncompressed_page_size));
+        read(_this, sizeof(int32_t), &(pageHeader->compressed_page_size));
+        read(_this, sizeof(int32_t), &(pageHeader->crc));
+
+        //page
+        switch (pageHeader->type) {
+            case DATA_PAGE:
+                readDataPage(_this, &(pageHeader->data_page_header));
+                break;
+            case DATA_PAGE_V2:
+                readDataPageV2(_this, &(pageHeader->data_page_header_v2));
+                break;
+            case INDEX_PAGE:
+                readIndexPage(_this, &(pageHeader->index_page_header));
+                break;
+            case DICTIONARY_PAGE:
+                readDictionaryPage(_this, &(pageHeader->dictionary_page_header));
+                break;
+            default:
+                break;
+        }
+        _this->pos = cur_pos;
+    }
+}
+
 MetaDataReader *createMetaDataReader(FILE *fp, size_t pos, int index_len) {
     if (fp) {
         MetaDataReader *reader = malloc(sizeof(MetaDataReader));
@@ -239,6 +326,7 @@ MetaDataReader *createMetaDataReader(FILE *fp, size_t pos, int index_len) {
         fseek(fp, pos + index_len - 3 * sizeof(int), SEEK_SET);
         fread(reader->len, 3 * sizeof(int), 1, fp);
         reader->readFileMeta = readFileMeta;
+        reader->readPageHeader = readPageHeader;
         reader->read = read;
         reader->seekTo = seekTo;
         reader->flush = flush;

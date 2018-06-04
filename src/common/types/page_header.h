@@ -26,6 +26,7 @@ struct DataPageHeaderV2 {
     int32_t num_nulls;
     int32_t num_rows;
     Encoding encoding;
+    //根据长度使用位图节省空间
     int32_t definition_levels_byte_length;
     int32_t repetition_levels_byte_length;
     bool is_compressed;

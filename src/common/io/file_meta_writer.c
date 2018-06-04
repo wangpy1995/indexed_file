@@ -15,35 +15,32 @@
  * @param size  需要大于0
  * @param data   不可为null
  */
+//内部使用  不再对外开放
 static inline void __attribute__((nonnull(1, 3))) write(MetaDataWriter *_this, size_t size, const void *data) {
     fseek(_this->fp, _this->pos, SEEK_SET);
     fwrite(data, size, 1, _this->fp);
     _this->pos += size;
 }
 
+//内部使用  不再对外开放
 static inline void __attribute__((nonnull(1))) seekTo(MetaDataWriter *_this, size_t pos) {
-    if (_this) {
-        _this->pos = pos;
-    }
+    _this->pos = pos;
 }
 
+//内部使用  不再对外开放
 static inline void __attribute__((nonnull(1))) flush(MetaDataWriter *_this) {
-    if (_this) {
-        fflush(_this->fp);
-    }
+    fflush(_this->fp);
 }
 
+//内部使用  不再对外开放
 static inline void __attribute__((nonnull(1))) close(MetaDataWriter *_this) {
-    if (_this) {
-        fclose(_this->fp);
-        free(_this);
-        _this->fp = NULL;
-    }
+    fclose(_this->fp);
+    free(_this);
+    _this->fp = NULL;
 }
 
 
 //write
-
 static void writeImmutableStrings(MetaDataWriter *_this, int32_t num_str, const String *strings) {
     int i;
     for (i = 0; i < num_str; ++i) {
@@ -260,14 +257,17 @@ static void writeDictionaryPage(MetaDataWriter *_this, const DictionaryPageHeade
     write(_this, sizeof(bool), &(header.is_sorted));
 }
 
-static void writePageHeader(MetaDataWriter *_this, const PageHeader pageHeader) {
+static void writePageHeader(MetaDataWriter *_this, const PageHeader pageHeader, int64_t offset) {
     if (_this) {
+        size_t cur = _this->pos;
+        //移动至offset处
+        _this->pos = offset;
         write(_this, sizeof(PageType), &(pageHeader.type));
         write(_this, sizeof(int32_t), &(pageHeader.uncompressed_page_size));
         write(_this, sizeof(int32_t), &(pageHeader.compressed_page_size));
         write(_this, sizeof(int32_t), &(pageHeader.crc));
 
-        //page
+        //page  顺序写入
         switch (pageHeader.type) {
             case DATA_PAGE:
                 writeDataPage(_this, pageHeader.data_page_header);
@@ -284,7 +284,7 @@ static void writePageHeader(MetaDataWriter *_this, const PageHeader pageHeader) 
             default:
                 break;
         }
-
+        _this->pos = cur;
     }
 }
 
