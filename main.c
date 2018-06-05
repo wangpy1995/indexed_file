@@ -25,6 +25,46 @@ void testIO() {
     if (file)fclose(file);
 }
 
+void mockColumnChunk(ColumnChunk *column) {
+
+    column->file_path.length = 59;
+    column->file_path.str = malloc(column->file_path.length * sizeof(char));
+    column->file_path.str = "/home/wangpengyu6/CLionProjects/indexed_file/resources/test_idx_file";
+    column->file_offset = 0;
+
+    column->meta_data.type = FIXED_LEN_BYTE_ARRAY;
+    column->meta_data.num_values = 100;
+    column->meta_data.codec = LZ4;
+    column->meta_data.total_uncompressed_size = 100;
+    column->meta_data.total_compressed_size = 3;
+    column->meta_data.kv_len = 0;
+    column->meta_data.data_page_offset = 0;
+    column->meta_data.index_page_offset = 0;
+    column->meta_data.dictionary_page_offset = 0;
+    column->meta_data.statistics.distinct_count = 3;
+    column->meta_data.statistics.null_count = 2;
+
+    column->meta_data.path_len = 1;
+    column->meta_data.path_in_schema = malloc(column->meta_data.path_len * sizeof(String));
+    column->meta_data.path_in_schema->length = 4;
+    column->meta_data.path_in_schema->str = malloc(column->meta_data.path_in_schema->length * sizeof(char));
+    column->meta_data.path_in_schema->str = "test";
+
+    column->meta_data.stat_len = 2;
+    column->meta_data.encoding_stats = malloc(column->meta_data.stat_len * sizeof(PageEncodingStats));
+    column->meta_data.encoding_stats[0].page_type = DATA_PAGE_V2;
+    column->meta_data.encoding_stats[0].encoding = RLE;
+    column->meta_data.encoding_stats[0].count = 10;
+    column->meta_data.encoding_stats[1].page_type = DATA_PAGE_V2;
+    column->meta_data.encoding_stats[1].encoding = RLE;
+    column->meta_data.encoding_stats[1].count = 50;
+
+    column->offset_index_offset = 0;
+    column->offset_index_length = 0;
+    column->column_index_offset = 0;
+    column->column_index_length = 0;
+}
+
 void testMetaDataWriter(void) {
     FILE *fp = fopen("../resources/test_idx_file", "rb+");
     TypeDefinedOrder o = {};
@@ -34,8 +74,8 @@ void testMetaDataWriter(void) {
     FileMetaData meta = {
             .version=001,
             .schema_len=1,
-            .num_rows=0,
-            .group_len=0,
+            .num_rows=150,
+            .group_len=1,
             .kv_len=2,
             .created_by={.str="wpy", .length=3},
             .order_len=1,
@@ -63,7 +103,25 @@ void testMetaDataWriter(void) {
     meta.schema->field_id = 0;
     meta.schema->logicalType = logic;
 
+    //row_group
+    meta.row_groups = malloc(meta.group_len * sizeof(RowGroup));
+    meta.row_groups->num_rows = 100;
+    meta.row_groups->sorting_columns_len = 2;
+    meta.row_groups->sorting_columns = malloc(meta.row_groups->sorting_columns_len * sizeof(SortingColumn));
+    meta.row_groups->sorting_columns[0].column_idx = 0;
+    meta.row_groups->sorting_columns[0].descending = true;
+    meta.row_groups->sorting_columns[0].nulls_first = false;
+    meta.row_groups->sorting_columns[1].column_idx = 1;
+    meta.row_groups->sorting_columns[1].descending = false;
+    meta.row_groups->sorting_columns[1].nulls_first = true;
 
+    meta.row_groups->chunk_len = 2;
+    meta.row_groups->columns = malloc(meta.row_groups->chunk_len * sizeof(ColumnChunk));
+    mockColumnChunk(meta.row_groups->columns);
+    mockColumnChunk(meta.row_groups->columns + 1);
+
+
+    //key_value
     meta.key_value_metadata = malloc(meta.kv_len * sizeof(KeyValue));
 
     meta.key_value_metadata[0].key.length = 2;
@@ -72,7 +130,7 @@ void testMetaDataWriter(void) {
     meta.key_value_metadata[0].value.str = "v1";
 
     meta.key_value_metadata[1].key.length = 2;
-    meta.key_value_metadata[1].key.str = "t2";
+    meta.key_value_metadata[1].key.str = "k2";
     meta.key_value_metadata[1].value.length = 2;
     meta.key_value_metadata[1].value.str = "v2";
 
@@ -85,8 +143,6 @@ void testMetaDataWriter(void) {
     idxWriter->write(idxWriter, sizeof(int32_t), "IDX1");
 
     idxWriter->close(idxWriter);
-
-
     free(meta.schema);
 }
 
@@ -134,7 +190,7 @@ void testReadAll(void) {
                                       fileLength - MAGIC.length - sizeof(int) - footIndexLength);
             close(fd);
 
-            FileMetaBuffer *fbuffer = createFileMetaBuffer(buffer, footIndexLength,SKIP_SCHEMAS);
+            FileMetaBuffer *fbuffer = createFileMetaBuffer(buffer, footIndexLength, SKIP_SCHEMAS);
 
 //            FileMetaData metaData = {
 //                    .version=*((int *) buffer),
@@ -151,7 +207,7 @@ void testReadAll(void) {
 }
 
 int main(void) {
-//    testMetaDataWriter();
+    testMetaDataWriter();
 //    testIO();
     testMetaDataReader();
 //    testReadAll();

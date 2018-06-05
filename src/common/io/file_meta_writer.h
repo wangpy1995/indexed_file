@@ -16,7 +16,7 @@ typedef struct MetaDataWriter {
 
     void (*writeFileMeta)(struct MetaDataWriter *_this, const FileMetaData metaData);
 
-    void (*writePageHeader)(struct MetaDataWriter *_this, const PageHeader pageHeader,int64_t offset);
+    void (*writePageHeader)(struct MetaDataWriter *_this, const PageHeader *pageHeader, int64_t offset);
 
     void (*write)(struct MetaDataWriter *_this, size_t size, const void *data);
 

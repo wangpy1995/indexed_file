@@ -220,7 +220,7 @@ void readFileMeta(MetaDataReader *_this, FileMetaData *metaData, int8_t mask) {
         } else {
             read(_this, sizeof(unsigned short), &(metaData->group_len));
             if (metaData->group_len > 0) {
-                metaData->row_groups = malloc(metaData->schema_len * sizeof(RowGroup));
+                metaData->row_groups = malloc(metaData->group_len * sizeof(RowGroup));
                 readRowGroups(_this, metaData->group_len, metaData->row_groups);
             }
         }
